@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+  <div class="panel empty">
+    <p class="eyebrow">403 / A DIFFERENT CLASSROOM</p>
+    <h1>This room isn't yours.</h1>
+    <p>You don't have permission to access this page.</p>
+    <a class="button" href="{% url 'dashboard' %}">Back to your workspace ↗</a>
+  </div>
+{% endblock %}

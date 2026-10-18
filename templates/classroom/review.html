@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Review submission{% endblock %}
+{% block breadcrumb %}Review submission{% endblock %}
+{% block content %}
+  <a class="back-link" href="{% url 'gradebook' attempt.exam_id %}">← Gradebook</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">{{ attempt.exam.title }}</p>
+      <h1>{{ attempt.student.get_full_name|default:attempt.student.username }}<span class="green">.</span>
+      </h1>
+      <p class="subtle">Submitted {{ attempt.submitted_at|date:'M j, Y · H:i' }}{% if attempt.timed_out %} · Time limit reached{% endif %}
+      </p>
+    </div>
+  </div>
+  <div class="question-stack">
+    {% for answer in attempt.answers.all %}
+      <article class="panel question-preview">
+        <div class="question-top">
+          <span class="question-number">{{ forloop.counter|stringformat:'02d' }}</span>
+          <span class="badge muted">{{ answer.question.get_kind_display }}</span>
+          <span class="points">{{ answer.question.points }} points</span>
+        </div>
+        <h3 class="preserve">{{ answer.question.prompt }}</h3>
+        {% if answer.question.kind == 'choice' %}
+          {% for option in answer.question.options %}
+            <div class="preview-option {% if forloop.counter0 == answer.question.correct_option %}correct{% endif %}">{{ option }}{% if forloop.counter0 == answer.selected_option %}
+              <span class="badge muted">Student answer</span>
+            {% endif %}
+              {% if forloop.counter0 == answer.question.correct_option %}
+                <strong>✓ Correct</strong>
+              {% endif %}
+            </div>
+          {% endfor %}
+          <p class="help">Automatically awarded {{ answer.awarded_points }} / {{ answer.question.points }} points.</p>
+        {% else %}
+          <p class="written-response preserve">{{ answer.text|default:'No written response submitted.' }}</p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+  <section class="panel form-panel">
+    <h2>Grades & feedback</h2>
+    {% if form.fields %}
+      <p class="subtle">Multiple-choice answers are already scored. Review the written responses below.</p>
+      <form method="post" class="stack">
+        {% csrf_token %}{{ form.as_div }}<button class="button">Save review ↗</button>
+      </form>
+    {% else %}
+      <p class="subtle">All questions were automatically graded. You can release the results from the gradebook.</p>
+      <a class="button secondary" href="{% url 'gradebook' attempt.exam_id %}">Back to gradebook ↗</a>
+    {% endif %}
+  </section>
+{% endblock %}

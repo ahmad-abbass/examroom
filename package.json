@@ -1,0 +1,13 @@
+{
+  "name": "examroom-browser-checks",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Optional end-to-end browser checks for the Django app",
+  "scripts": {
+    "test:e2e": "node scripts/browser_smoke.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1",
+    "prettier": "^3.6.2"
+  }
+}

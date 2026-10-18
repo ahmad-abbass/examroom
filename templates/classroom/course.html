@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}{{ course.name }}{% endblock %}
+{% block breadcrumb %}{{ course.code }}{% endblock %}
+{% block content %}
+  <a class="back-link" href="{% url 'dashboard' %}">← Overview</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">{{ course.code }}</p>
+      <h1>{{ course.name }}<span class="green">.</span>
+      </h1>
+      <p class="subtle">{{ course.description|default:'A space for your next great question.' }}</p>
+    </div>
+    {% if is_teacher %}
+      <a class="button" href="{% url 'exam_create' course.pk %}">+ Create exam</a>
+    {% endif %}
+  </div>
+  {% if is_teacher %}
+    <div class="join-code-panel">
+      <div>
+        <span class="eyebrow">INVITE YOUR STUDENTS</span>
+        <p>Share this code. Students can join from their dashboard.</p>
+      </div>
+      <code>{{ course.join_code }}</code>
+    </div>
+  {% endif %}
+  <div class="section-heading">
+    <h2>Class exams</h2>
+    <span class="count">{{ exams|length }}</span>
+  </div>
+  <div class="exam-grid">
+    {% for exam in exams %}
+      <article class="panel exam-card">
+        <div class="card-top">
+          <span class="exam-icon">▤</span>
+          <span class="badge {% if exam.published %}success{% else %}sand{% endif %}">
+            {% if exam.published %}Published{% else %}Draft{% endif %}
+          </span>
+        </div>
+        <h3>{{ exam.title }}</h3>
+        <div class="card-meta">
+          <span>{{ exam.duration_minutes }} minutes</span>
+          <span>{{ exam.total_points }} points</span>
+        </div>
+        <a class="button secondary full" href="{% if is_teacher %}
+                                                 {% url 'exam_edit' exam.pk %}
+                                               {% else %}
+                                                 {% url 'exam_intro' exam.pk %}
+                                               {% endif %}">
+          {% if is_teacher %}Open builder{% else %}View exam{% endif %} ↗</a>
+      </article>
+    {% empty %}
+      <div class="panel empty span-all">
+        <h3>No exams here yet.</h3>
+        <p>
+          {% if is_teacher %}Create your first exam when inspiration strikes.{% else %}Your teacher will publish exams here.{% endif %}
+        </p>
+      </div>
+    {% endfor %}
+  </div>
+  {% if is_teacher %}
+    <div class="section-heading">
+      <h2>Class roster</h2>
+      <span class="count">{{ roster|length }}</span>
+    </div>
+    <div class="panel table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>STUDENT</th>
+            <th>USERNAME</th>
+            <th>JOINED</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for enrollment in roster %}
+            <tr>
+              <td>{{ enrollment.student.get_full_name|default:enrollment.student.username }}</td>
+              <td>{{ enrollment.student.username }}</td>
+              <td>{{ enrollment.joined_at|date:'M j, Y' }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3">Share the join code to welcome your first students.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

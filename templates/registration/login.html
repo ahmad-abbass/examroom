@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Welcome back{% endblock %}
+{% block content %}
+  <div class="auth-layout">
+    <section class="auth-story">
+      <a class="brand" href="{% url 'login' %}">
+        <img src="{% static 'mark.svg' %}" width="34" height="34" alt="">ExamRoom.</a>
+      <div>
+        <p class="eyebrow">A BETTER KIND OF EXAM DAY</p>
+        <h1>Great learning.<br>A little less<br>
+          <em>friction.</em>
+        </h1>
+        <p>Create thoughtful exams. Give every student a focused space. Bring the whole classroom together.</p>
+      </div>
+      <div class="story-bottom">
+        <span class="mini-lines" aria-hidden="true">▥</span>
+        <span>For curious minds<br>
+          <strong>and the people who teach them.</strong>
+        </span>
+      </div>
+    </section>
+    <section class="auth-panel">
+      <div class="auth-form-wrap">
+        <span class="badge muted">YOUR CLASSROOM, CONNECTED</span>
+        <h2>Welcome back.</h2>
+        <p class="subtle">A fresh start, right where you left off.</p>
+        <form method="post" class="stack">
+          {% csrf_token %}{{ form.non_field_errors }}{% for field in form %}
+            <div class="field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+          {% endfor %}
+          {% if next %}
+            <input type="hidden" name="next" value="{{ next }}">
+          {% endif %}
+          <button class="button full">Sign in <span aria-hidden="true">↗</span>
+          </button>
+        </form>
+        <p class="auth-link">New student? <a href="{% url 'register' %}">Create an account</a>
+        </p>
+        <p class="auth-foot">Teacher accounts are provisioned by your administrator.</p>
+      </div>
+    </section>
+  </div>
+{% endblock %}

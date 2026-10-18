@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}{{ exam.title }}{% endblock %}
+{% block breadcrumb %}Exam builder{% endblock %}
+{% block content %}
+  <a class="back-link" href="{% url 'course' exam.course_id %}">← {{ exam.course.name }}</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">{{ exam.course.code }} / EXAM BUILDER</p>
+      <h1>{{ exam.title }}<span class="green">.</span>
+      </h1>
+      <p class="subtle">{{ exam.questions.count }} questions <span class="middot">·</span> {{ exam.total_points }} points <span class="middot">·</span> {{ exam.duration_minutes }} minutes</p>
+    </div>
+    <div class="actions">
+      <a class="button secondary" href="{% url 'gradebook' exam.pk %}">Gradebook ↗</a>
+      {% if not exam.published %}
+        <form method="post" action="{% url 'exam_publish' exam.pk %}" data-confirm="Publish this exam? Its questions and timing will be frozen.">
+          {% csrf_token %}
+          <button class="button">Publish exam ↗</button>
+        </form>
+      {% else %}
+        <span class="badge success">Published</span>
+      {% endif %}
+    </div>
+  </div>
+  {% if exam.published %}
+    <div class="notice">This exam is published. Questions and timing are locked so every student gets the same assessment.</div>
+  {% else %}
+    <details class="panel details-panel">
+      <summary>Edit exam details <span>Duration, instructions & schedule</span>
+      </summary>
+      <form method="post" class="stack">
+        {% csrf_token %}{{ form.as_div }}<button class="button">Save details</button>
+      </form>
+    </details>
+  {% endif %}
+  <div class="section-heading">
+    <h2>The questions</h2>
+    {% if not exam.published %}
+      <a class="button secondary" href="{% url 'question_create' exam.pk %}">+ Add question</a>
+    {% endif %}
+  </div>
+  <div class="question-stack">
+    {% for question in exam.questions.all %}
+      <article class="panel question-preview">
+        <div class="question-top">
+          <span class="question-number">{{ forloop.counter|stringformat:'02d' }}</span>
+          <span class="badge muted">{{ question.get_kind_display }}</span>
+          <span class="points">{{ question.points }} points</span>
+        </div>
+        <h3 class="preserve">{{ question.prompt }}</h3>
+        {% if question.kind == 'choice' %}
+          <div class="preview-options">
+            {% for option in question.options %}
+              <div class="preview-option {% if forloop.counter0 == question.correct_option %}correct{% endif %}">
+                <span>{{ forloop.counter }}</span>{{ option }}{% if forloop.counter0 == question.correct_option %}
+                  <strong>✓ Correct</strong>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="written-placeholder">Students will write their response here. You'll review it after submission.</div>
+        {% endif %}
+        {% if question.explanation %}
+          <p class="help">
+            <strong>After-results explanation:</strong> {{ question.explanation }}</p>
+        {% endif %}
+        {% if not exam.published %}
+          <div class="question-actions">
+            <a class="text-link" href="{% url 'question_edit' exam.pk question.pk %}">Edit question ↗</a>
+            <form method="post" action="{% url 'question_delete' exam.pk question.pk %}" data-confirm="Remove this question from the draft?">
+              {% csrf_token %}
+              <button class="text-button danger">Remove</button>
+            </form>
+          </div>
+        {% endif %}
+      </article>
+    {% empty %}
+      <div class="panel empty">
+        <span>?</span>
+        <h3>Every great exam starts with a question.</h3>
+        <p>Add multiple-choice or written-response questions to get started.</p>
+        <a class="button" href="{% url 'question_create' exam.pk %}">Add your first question ↗</a>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

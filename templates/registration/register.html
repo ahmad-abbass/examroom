@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Create an account{% endblock %}
+{% block content %}
+  <div class="register-shell">
+    <a class="brand" href="{% url 'login' %}">
+      <img src="{% static 'mark.svg' %}" width="32" height="32" alt="">ExamRoom.</a>
+    <div class="panel register-card">
+      <p class="eyebrow">LET'S GET YOU SETTLED IN</p>
+      <h1>Your next chapter.</h1>
+      <p class="subtle">Create a student account, then join a class with your teacher's code.</p>
+      <form method="post" class="stack">
+        {% csrf_token %}{{ form.non_field_errors }}{% for field in form %}
+          <div class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}{% if field.help_text %}
+              <div class="help">{{ field.help_text }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+        <button class="button full">Create student account ↗</button>
+      </form>
+      <p class="auth-link">Already part of the class? <a href="{% url 'login' %}">Sign in</a>
+      </p>
+    </div>
+  </div>
+{% endblock %}

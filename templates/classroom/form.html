@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block breadcrumb %}{{ title }}{% endblock %}
+{% block content %}
+  <a class="back-link" href="{{ back_url|default:'/' }}">← Back to workspace</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">{{ eyebrow }}</p>
+      <h1>{{ title }}<span class="green">.</span>
+      </h1>
+      <p class="subtle">The small details make a thoughtful learning experience.</p>
+    </div>
+  </div>
+  <section class="panel form-panel">
+    <form method="post" class="stack" {% if question_form %}data-question-form{% endif %}>
+      {% csrf_token %}{{ form.non_field_errors }}{% for field in form %}
+        <div class="field" {% if field.name == 'option_a' or field.name == 'option_b' or field.name == 'option_c' or field.name == 'option_d' or field.name == 'correct_option' %}data-choice-only{% endif %}>
+          <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}
+            <span class="required" aria-hidden="true"> *</span>
+          {% endif %}
+          </label>{{ field }}{{ field.errors }}{% if field.help_text %}
+            <div class="help">{{ field.help_text }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <div class="form-actions">
+        <button class="button">{{ button }} ↗</button>
+        <a class="button ghost" href="{{ back_url|default:'/' }}">Cancel</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

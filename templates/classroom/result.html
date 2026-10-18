@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Your submission{% endblock %}
+{% block breadcrumb %}Your submission{% endblock %}
+{% block content %}
+  <a class="back-link" href="{% url 'dashboard' %}">← Your exam space</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">{{ attempt.exam.course.code }} / {{ attempt.exam.title }}</p>
+      <h1>
+        {% if show_results %}A moment to reflect{% else %}All handed in{% endif %}
+        <span class="green">.</span>
+      </h1>
+      <p class="subtle">Submitted {{ attempt.submitted_at|date:'M j, Y · H:i' }}{% if attempt.timed_out %} · Time limit reached{% endif %}
+      </p>
+    </div>
+    <span class="badge success">Submitted ✓</span>
+  </div>
+  {% if show_results %}
+    <section class="score-panel">
+      <div>
+        <p class="eyebrow">YOUR FINAL SCORE</p>
+        <strong>{{ attempt.score }}<span> / {{ attempt.exam.total_points }}</span>
+        </strong>
+        <p>Every result is a place to grow from.</p>
+      </div>
+      <div class="score-circle">{{ attempt.percentage }}<small>%</small>
+      </div>
+    </section>
+    <div class="section-heading">
+      <h2>Your answers & feedback</h2>
+    </div>
+    <div class="question-stack">
+      {% for answer in attempt.answers.all %}
+        <article class="panel question-preview">
+          <div class="question-top">
+            <span class="question-number">{{ forloop.counter|stringformat:'02d' }}</span>
+            <span class="points">{{ answer.awarded_points }} / {{ answer.question.points }} points</span>
+          </div>
+          <h3 class="preserve">{{ answer.question.prompt }}</h3>
+          {% if answer.question.kind == 'choice' %}
+            {% for option in answer.question.options %}
+              <div class="preview-option {% if forloop.counter0 == answer.question.correct_option %}correct{% endif %}">{{ option }}{% if forloop.counter0 == answer.selected_option %}
+                <span class="badge muted">Your answer</span>
+              {% endif %}
+                {% if forloop.counter0 == answer.question.correct_option %}
+                  <strong>✓ Correct</strong>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="written-response preserve">{{ answer.text|default:'No response submitted.' }}</p>
+          {% endif %}
+          {% if answer.feedback %}
+            <div class="feedback">
+              <strong>Teacher feedback</strong>
+              <p class="preserve">{{ answer.feedback }}</p>
+            </div>
+          {% endif %}
+          {% if answer.question.explanation %}
+            <p class="help preserve">{{ answer.question.explanation }}</p>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="panel waiting-panel">
+      <span class="giant-star">✳</span>
+      <h2>Your work is in good hands.</h2>
+      <p class="subtle">Your teacher will review your submission and release the results.<br>Come back here for your score and feedback.</p>
+      <a class="button secondary" href="{% url 'dashboard' %}">Back to overview ↗</a>
+    </section>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ attempt.exam.title }}{% endblock %}
+{% block breadcrumb %}Exam in progress{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">{{ attempt.exam.course.code }} / YOUR FOCUS SPACE</p>
+      <h1>{{ attempt.exam.title }}</h1>
+    </div>
+    <div class="timer-box">
+      <span>TIME REMAINING</span>
+      <strong id="timer">--:--</strong>
+    </div>
+  </div>
+  <div class="attempt-toolbar">
+    <span id="answer-progress">0 of {{ answers|length }} answered</span>
+    <span id="save-status" role="status">Your saved answers are loaded</span>
+  </div>
+  <form id="exam-form" data-save-url="{% url 'attempt_save' attempt.pk %}" data-revision="{{ attempt.revision }}" data-deadline="{{ attempt.deadline_at|date:'U' }}" data-server-now="{% now 'U' %}">
+    {% csrf_token %}
+    <div class="question-stack">
+      {% for answer in answers %}
+        <fieldset class="panel question-preview answer-field" data-question="{{ answer.question_id }}" data-kind="{{ answer.question.kind }}">
+          <legend class="sr-only">Question {{ forloop.counter }}</legend>
+          <div class="question-top">
+            <span class="question-number">{{ forloop.counter|stringformat:'02d' }}</span>
+            <span class="badge muted">{{ answer.question.get_kind_display }}</span>
+            <span class="points">{{ answer.question.points }} points</span>
+          </div>
+          <h2 class="question-prompt preserve" id="prompt-{{ answer.question_id }}">{{ answer.question.prompt }}</h2>
+          {% if answer.question.kind == 'choice' %}
+            <div class="answer-options" role="group" aria-labelledby="prompt-{{ answer.question_id }}">
+              {% for option in answer.question.options %}
+                <label class="answer-option">
+                  <input type="radio" name="question_{{ answer.question_id }}" value="{{ forloop.counter0 }}" {% if answer.selected_option == forloop.counter0 %}checked{% endif %}>
+                  <span>{{ option }}</span>
+                </label>
+              {% endfor %}
+            </div>
+            <button type="button" class="text-button clear-answer" data-clear="{{ answer.question_id }}">Clear selection</button>
+          {% else %}
+            <label class="sr-only" for="answer-{{ answer.question_id }}">Your written response</label>
+            <textarea id="answer-{{ answer.question_id }}" name="question_{{ answer.question_id }}" rows="5" maxlength="10000" placeholder="Make room for your thinking...">{{ answer.text }}</textarea>
+          {% endif %}
+        </fieldset>
+      {% endfor %}
+    </div>
+    <div class="submit-panel">
+      <div>
+        <h3>Ready to hand it in?</h3>
+        <p class="subtle small">Review your answers. You can't change them after submitting.</p>
+      </div>
+      <button id="submit-exam" class="button" type="submit">Submit exam ↗</button>
+    </div>
+    <p class="save-error" id="save-error" role="alert" hidden>
+    </p>
+    <button id="retry-save" class="button secondary" type="button" hidden>Retry saving</button>
+  </form>
+{% endblock %}
+{% block scripts %}
+  <script src="{% static 'attempt.js' %}" defer>
+  </script>
+{% endblock %}

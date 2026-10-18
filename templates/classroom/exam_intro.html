@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}{{ exam.title }}{% endblock %}
+{% block breadcrumb %}Exam details{% endblock %}
+{% block content %}
+  <a class="back-link" href="{% url 'dashboard' %}">← Your exam space</a>
+  <div class="intro-layout">
+    <section>
+      <p class="eyebrow">{{ exam.course.name }}</p>
+      <h1>{{ exam.title }}<span class="green">.</span>
+      </h1>
+      <p class="subtle">A little preparation goes a long way.</p>
+      <div class="intro-stats">
+        <div>
+          <strong>{{ exam.duration_minutes }}</strong>
+          <span>minutes</span>
+        </div>
+        <div>
+          <strong>{{ exam.questions.count }}</strong>
+          <span>questions</span>
+        </div>
+        <div>
+          <strong>{{ exam.total_points }}</strong>
+          <span>points</span>
+        </div>
+      </div>
+      <h2>Before you begin</h2>
+      <div class="preserve instructions">{{ exam.instructions|default:'Read each question carefully. Answer in your own words and do your best.' }}</div>
+      <ul class="check-list">
+        <li>Your timer starts when you click below and continues if you leave.</li>
+        <li>Your answers save automatically. Watch the save indicator.</li>
+        <li>There is one attempt. Submit when you're ready, or time will end it.</li>
+        <li>Your teacher decides when to release grades and feedback.</li>
+      </ul>
+      <p class="subtle small">
+        {% if exam.opens_at %}Opens: {{ exam.opens_at|date:'M j, Y · H:i T' }}<br>
+        {% endif %}
+        {% if exam.closes_at %}Closes: {{ exam.closes_at|date:'M j, Y · H:i T' }}{% endif %}
+      </p>
+      {% if can_start %}
+        <form method="post" action="{% url 'exam_start' exam.pk %}">
+          {% csrf_token %}
+          <button class="button">I'm ready. Start exam ↗</button>
+        </form>
+      {% else %}
+        <div class="notice">This exam is not currently open for new attempts.</div>
+      {% endif %}
+    </section>
+    <aside class="intro-aside">
+      <span class="giant-star">✳</span>
+      <h2>You've got room<br>to think.</h2>
+      <p>Find a quiet spot.<br>Take a breath.<br>Start when you're ready.</p>
+    </aside>
+  </div>
+{% endblock %}
