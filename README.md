@@ -27,6 +27,8 @@ Use the question builder's up/down controls to arrange a draft. The order is sav
 
 Class owners can pause/reopen new joins or replace a shared join code. The old code stops working immediately after replacement. Neither action removes enrolled students or changes their attempts.
 
+The gradebook includes enrolled students who have not started, plus active, unreviewed, and graded attempts. Search by name/username or filter by status. Pages contain 25 students; CSV exports use the same filters and include every matching row across pages. Summary statistics always describe the entire class.
+
 ## Run locally
 
 Requires Python **3.12 or 3.13**. These commands use a Unix-like shell:

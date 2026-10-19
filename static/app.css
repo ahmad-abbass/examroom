@@ -514,6 +514,26 @@ summary:focus-visible {
   gap: 17px;
   margin: 0 0 29px;
 }
+.gradebook-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.gradebook-filters {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px;
+  margin-bottom: 14px;
+}
+.gradebook-filters .field {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.pagination {
+  justify-content: center;
+  margin-top: 22px;
+  font-size: 12px;
+}
 .stat {
   position: relative;
   background: var(--panel);
@@ -1537,6 +1557,9 @@ td small {
   }
 }
 @media (max-width: 780px) {
+  .gradebook-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .app-shell {
     display: block;
   }
