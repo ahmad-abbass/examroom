@@ -3,6 +3,7 @@ import hashlib
 import json
 from datetime import timedelta
 from functools import wraps
+from urllib.parse import urlencode
 
 from django import forms
 from django.contrib import messages
@@ -10,6 +11,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
@@ -19,6 +21,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .forms import CourseForm, ExamForm, QuestionForm, RegisterForm
+from .gradebooks import STATUSES, filter_rows, gradebook_rows
 from .models import Attempt, Course, Enrollment, Exam, LoginThrottle, Profile, Question
 from .services import (
     RevisionConflict,
@@ -424,19 +427,47 @@ def finish_overdue(exam):
 
 @teacher_only
 def gradebook(request, pk):
-    exam = get_object_or_404(Exam, pk=pk, course__teacher=request.user)
+    exam = get_object_or_404(
+        Exam.objects.prefetch_related("questions").select_related("course"),
+        pk=pk,
+        course__teacher=request.user,
+    )
     finish_overdue(exam)
-    attempts = exam.attempts.select_related("student", "exam").prefetch_related("answers", "exam__questions")
-    complete = [a for a in attempts if a.graded]
+    rows = gradebook_rows(exam)
+    complete = [row.attempt for row in rows if row.status == "graded"]
+    query, status = gradebook_filters(request)
+    filtered = filter_rows(rows, query, status)
+    page = Paginator(filtered, 25).get_page(request.GET.get("page"))
     stats = [
-        ("Submissions", sum(bool(a.submitted_at) for a in attempts)),
-        ("Awaiting review", sum(bool(a.submitted_at and not a.graded) for a in attempts)),
+        ("Submissions", sum(bool(row.attempt and row.attempt.submitted_at) for row in rows)),
+        ("Awaiting review", sum(row.status == "needs_review" for row in rows)),
+        ("Not started", sum(row.status == "not_started" for row in rows)),
         (
             "Class average",
             f"{round(sum(a.percentage for a in complete) / len(complete))}%" if complete else "—",
         ),
     ]
-    return render(request, "classroom/gradebook.html", {"exam": exam, "attempts": attempts, "stats": stats})
+    return render(
+        request,
+        "classroom/gradebook.html",
+        {
+            "exam": exam,
+            "rows": page,
+            "stats": stats,
+            "query": query,
+            "status": status,
+            "status_choices": STATUSES.items(),
+            "total_students": len(rows),
+            "filtered_count": len(filtered),
+            "filter_query": urlencode({"q": query, "status": status}),
+        },
+    )
+
+
+def gradebook_filters(request):
+    query = request.GET.get("q", "").strip()[:150]
+    status = request.GET.get("status", "")
+    return query, status if status in STATUSES else ""
 
 
 @teacher_only
@@ -492,20 +523,25 @@ def release_results(request, pk):
 
 @teacher_only
 def export_grades(request, pk):
-    exam = get_object_or_404(Exam, pk=pk, course__teacher=request.user)
+    exam = get_object_or_404(
+        Exam.objects.prefetch_related("questions").select_related("course"),
+        pk=pk,
+        course__teacher=request.user,
+    )
     finish_overdue(exam)
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="exam-{exam.pk}-grades.csv"'
     writer = csv.writer(response)
     writer.writerow(["Student", "Username", "Status", "Score", "Maximum", "Percentage"])
-    for a in exam.attempts.select_related("student", "exam").prefetch_related("answers", "exam__questions"):
+    for entry in filter_rows(gradebook_rows(exam), *gradebook_filters(request)):
+        a = entry.attempt
         row = [
-            a.student.get_full_name() or a.student.username,
-            a.student.username,
-            "Graded" if a.graded else ("Needs review" if a.submitted_at else "In progress"),
-            a.score if a.graded else "",
+            entry.student.get_full_name() or entry.student.username,
+            entry.student.username,
+            entry.status_label,
+            a.score if entry.status == "graded" else "",
             exam.total_points,
-            a.percentage if a.graded else "",
+            a.percentage if entry.status == "graded" else "",
         ]
         writer.writerow(
             [

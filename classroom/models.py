@@ -118,7 +118,9 @@ class Attempt(models.Model):
 
     @property
     def graded(self):
-        return self.submitted_at is not None and not self.answers.filter(awarded_points__isnull=True).exists()
+        return self.submitted_at is not None and all(
+            answer.awarded_points is not None for answer in self.answers.all()
+        )
 
     @property
     def score(self):

@@ -10,7 +10,7 @@
       <p class="subtle">Thoughtful feedback makes the next step clearer.</p>
     </div>
     <div class="actions">
-      <a class="button secondary" href="{% url 'export_grades' exam.pk %}">Export CSV ↓</a>
+      <a class="button secondary" href="{% url 'export_grades' exam.pk %}?{{ filter_query }}">Export CSV ↓</a>
       <form method="post" action="{% url 'release_results' exam.pk %}" data-confirm="{% if exam.results_released %}Hide results from students?{% else %}Release completed grades, correct answers and feedback to students?{% endif %}">
         {% csrf_token %}
         <input type="hidden" name="released" value="{% if exam.results_released %}0{% else %}1{% endif %}">
@@ -20,7 +20,7 @@
       </form>
     </div>
   </div>
-  <section class="stats">
+  <section class="stats gradebook-stats">
     {% for label,value in stats %}
       <div class="stat">
         <span>{{ label }}</span>
@@ -31,6 +31,24 @@
   <div class="notice">
     {% if exam.results_released %}Results are released. Students with fully graded submissions can see their scores and feedback.{% else %}Results are private. Students will see scores and correct answers only after you release them and finish grading.{% endif %}
   </div>
+  <form method="get" class="gradebook-filters panel">
+    <div class="field">
+      <label for="student-search">Find a student</label>
+      <input id="student-search" name="q" value="{{ query }}" maxlength="150" placeholder="Name or username" type="search">
+    </div>
+    <div class="field">
+      <label for="grade-status">Submission status</label>
+      <select id="grade-status" name="status">
+        <option value="">All students</option>
+        {% for value,label in status_choices %}
+          <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="button secondary">Apply filters</button>
+    <a class="text-link" href="{% url 'gradebook' exam.pk %}">Clear filters</a>
+  </form>
+  <p class="subtle small">{{ filtered_count }} of {{ total_students }} students · CSV includes every matching student across all pages.</p>
   <div class="panel table-wrap">
     <table>
       <thead>
@@ -45,24 +63,24 @@
         </tr>
       </thead>
       <tbody>
-        {% for attempt in attempts %}
+        {% for row in rows %}
           <tr>
             <td>
-              <strong>{{ attempt.student.get_full_name|default:attempt.student.username }}</strong>
-              <small>{{ attempt.student.username }}</small>
+              <strong>{{ row.student.get_full_name|default:row.student.username }}</strong>
+              <small>{{ row.student.username }}</small>
             </td>
-            <td>{{ attempt.submitted_at|date:'M j · H:i'|default:'—' }}</td>
+            <td>{{ row.attempt.submitted_at|date:'M j · H:i'|default:'—' }}</td>
             <td>
-              <span class="badge {% if attempt.graded %}success{% else %}sand{% endif %}">
-                {% if attempt.graded %}Graded{% elif attempt.submitted_at %}Needs review{% else %}In progress{% endif %}
+              <span class="badge {% if row.status == 'graded' %}success{% else %}sand{% endif %}">
+                {{ row.status_label }}
               </span>
             </td>
             <td>
-              {% if attempt.graded %}{{ attempt.score }} / {{ exam.total_points }}{% else %}—{% endif %}
+              {% if row.status == 'graded' %}{{ row.attempt.score }} / {{ exam.total_points }}{% else %}—{% endif %}
             </td>
             <td>
-              {% if attempt.submitted_at %}
-                <a class="text-link" href="{% url 'review' attempt.pk %}">Review ↗</a>
+              {% if row.attempt.submitted_at %}
+                <a class="text-link" href="{% url 'review' row.attempt.pk %}">Review ↗</a>
               {% endif %}
             </td>
           </tr>
@@ -70,8 +88,8 @@
           <tr>
             <td colspan="5">
               <div class="empty">
-                <h3>No submissions just yet.</h3>
-                <p>Your students' work will appear here as they begin.</p>
+                <h3>No students match this view.</h3>
+                <p>Clear the filters or share your class invitation.</p>
               </div>
             </td>
           </tr>
@@ -79,4 +97,11 @@
       </tbody>
     </table>
   </div>
+  {% if rows.has_other_pages %}
+    <nav class="actions pagination" aria-label="Gradebook pages">
+      {% if rows.has_previous %}<a class="button secondary" href="?{{ filter_query }}&page={{ rows.previous_page_number }}">← Previous</a>{% endif %}
+      <span>Page {{ rows.number }} of {{ rows.paginator.num_pages }}</span>
+      {% if rows.has_next %}<a class="button secondary" href="?{{ filter_query }}&page={{ rows.next_page_number }}">Next →</a>{% endif %}
+    </nav>
+  {% endif %}
 {% endblock %}
