@@ -34,7 +34,13 @@ class GradingRevisionTests(ClassroomTestCase):
         self.assertEqual(self.attempt.grading_revision, 2)
 
     def test_invalid_or_incomplete_grades_do_not_change_existing_work(self):
-        invalid = [{}, {self.answer.pk: (21, "Too many")}, {self.answer.pk: (True, "Boolean")}, {self.answer.pk: (5, "x" * 2001)}, {99999: (5, "Foreign")}]
+        invalid = [
+            {},
+            {self.answer.pk: (21, "Too many")},
+            {self.answer.pk: (True, "Boolean")},
+            {self.answer.pk: (5, "x" * 2001)},
+            {99999: (5, "Foreign")},
+        ]
         for grades in invalid:
             with self.assertRaises(ValidationError):
                 grade_submission(self.attempt.pk, self.teacher, grades, 0)
@@ -68,6 +74,8 @@ class GradingRevisionTests(ClassroomTestCase):
 
     def test_missing_revision_does_not_bypass_the_review_guard(self):
         self.client.force_login(self.teacher)
-        response = self.client.post(reverse("review", args=[self.attempt.pk]), {f"points_{self.answer.pk}": 15})
+        response = self.client.post(
+            reverse("review", args=[self.attempt.pk]), {f"points_{self.answer.pk}": 15}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(Answer.objects.get(pk=self.answer.pk).awarded_points)
