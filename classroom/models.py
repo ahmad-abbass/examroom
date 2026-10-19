@@ -38,6 +38,7 @@ class Course(models.Model):
     code = models.CharField(max_length=24)
     description = models.TextField(blank=True, max_length=1000)
     join_code = models.CharField(max_length=8, unique=True, default=join_code, editable=False)
+    join_enabled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

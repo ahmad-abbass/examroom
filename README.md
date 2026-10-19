@@ -25,6 +25,8 @@ Teachers can duplicate an existing exam into a fresh draft. Questions and answer
 
 Use the question builder's up/down controls to arrange a draft. The order is saved on the server and frozen when published; keyboard and touch users can use the same controls without drag-and-drop.
 
+Class owners can pause/reopen new joins or replace a shared join code. The old code stops working immediately after replacement. Neither action removes enrolled students or changes their attempts.
+
 ## Run locally
 
 Requires Python **3.12 or 3.13**. These commands use a Unix-like shell:
