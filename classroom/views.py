@@ -25,6 +25,7 @@ from .services import (
     available,
     duplicate_exam,
     finalize_expired,
+    move_question,
     publish_exam,
     save_answers,
     start_attempt,
@@ -266,6 +267,8 @@ def question_edit(request, exam_id, pk=None):
             if pk is None and locked.questions.count() >= 50:
                 form.add_error(None, "An exam can contain at most 50 questions.")
             else:
+                if pk is None:
+                    form.instance.position = locked.questions.count()
                 form.save()
                 messages.success(request, "Question saved.")
                 return redirect("exam_edit", pk=exam.pk)
@@ -281,6 +284,18 @@ def question_edit(request, exam_id, pk=None):
             "question_form": True,
         },
     )
+
+
+@teacher_only
+@require_POST
+def question_move(request, exam_id, pk):
+    get_object_or_404(Question, pk=pk, exam_id=exam_id, exam__course__teacher=request.user)
+    try:
+        if move_question(exam_id, pk, request.user, request.POST.get("direction")):
+            messages.success(request, "Question order updated.")
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
+    return redirect("exam_edit", pk=exam_id)
 
 
 @teacher_only
