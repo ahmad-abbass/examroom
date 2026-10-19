@@ -8,7 +8,7 @@ ExamRoom is a small, full-stack exam platform for teachers and students. Teacher
 
 Built with **Python, Django, SQLite, and vanilla JavaScript**. No frontend build step is needed to run the app.
 
-> Portfolio learning project developed with AI assistance. The implementation is intentionally small enough to read, test, modify, and explain. It is not an independently audited examination service.
+> Portfolio learning project. The implementation is intentionally small enough to read, test, modify, and explain. It is not an independently audited examination service.
 
 ## What you can do
 
@@ -156,4 +156,4 @@ This is a classroom-scale, single-host application. SQLite uses `IMMEDIATE` tran
 
 Implementation is original to this repository. The [Django authentication](https://docs.djangoproject.com/en/5.2/topics/auth/default/), [transaction](https://docs.djangoproject.com/en/5.2/topics/db/transactions/), and [security](https://docs.djangoproject.com/en/5.2/topics/security/) documentation informed framework usage. [Moodle's quiz timing documentation](https://docs.moodle.org/502/en/Quiz_settings) was consulted for common assessment concepts; no Moodle code or assets were copied.
 
-Created for Ahmad Abbas as a portfolio learning project with AI assistance. Released under the [MIT license](LICENSE).
+Created for Ahmad Abbas as a portfolio learning project. Released under the [MIT license](LICENSE).

@@ -1,6 +1,6 @@
 # Learn the project, then make it yours
 
-This project was developed with AI assistance. Treat the repository as a starting point for understanding and practical work. Before describing any part as your own expertise, run it, change it, break it, and explain its behavior without reading the answer from a screen.
+Treat the repository as a starting point for understanding and practical work. Before describing any part as your own expertise, run it, change it, break it, and explain its behavior without reading the answer from a screen.
 
 ## Read in this order
 
@@ -44,6 +44,6 @@ Open the same attempt in two tabs. Save different answers in each and explain th
 
 ## Describe the work accurately
 
-A truthful project description is: **“An exam-management learning project built with Django, SQLite and JavaScript, developed with AI assistance. I used it to study authentication, authorization, transactions, timed workflows and testing, and implemented [the specific changes you actually made].”**
+A truthful project description is: **“An exam-management learning project built with Django, SQLite and JavaScript. I used it to study authentication, authorization, transactions, timed workflows and testing, and implemented [the specific changes you actually made].”**
 
 Update that description as your own understanding and contributions grow. Do not claim production users, deployment experience, independent authorship, or performance measurements that you have not actually established.
