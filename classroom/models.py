@@ -137,6 +137,7 @@ class Answer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     selected_option = models.PositiveSmallIntegerField(null=True, blank=True)
     text = models.TextField(blank=True, max_length=10000)
+    flagged = models.BooleanField(default=False)
     awarded_points = models.PositiveIntegerField(null=True, blank=True)
     feedback = models.TextField(blank=True, max_length=2000)
 

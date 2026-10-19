@@ -19,14 +19,29 @@
   </div>
   <form id="exam-form" data-save-url="{% url 'attempt_save' attempt.pk %}" data-revision="{{ attempt.revision }}" data-deadline="{{ attempt.deadline_at|date:'U' }}" data-server-now="{% now 'U' %}">
     {% csrf_token %}
+    <section class="panel question-navigator">
+      <div class="actions">
+        <h2>Question navigator</h2>
+        <span class="subtle small" id="flag-progress">Review marks loaded</span>
+        <button type="button" class="button secondary" id="find-unanswered">Find unanswered</button>
+        <button type="button" class="button secondary" id="find-flagged">Review marked</button>
+      </div>
+      <nav class="question-links" aria-label="Question navigator">
+        {% for answer in answers %}
+          <a href="#question-{{ answer.question_id }}" data-question-link="{{ answer.question_id }}" aria-label="Question {{ forloop.counter }}">{{ forloop.counter }}</a>
+        {% endfor %}
+      </nav>
+      <p class="subtle small">Green: answered · Gold: marked for review. Marks are saved with your answers.</p>
+    </section>
     <div class="question-stack">
       {% for answer in answers %}
-        <fieldset class="panel question-preview answer-field" data-question="{{ answer.question_id }}" data-kind="{{ answer.question.kind }}">
+        <fieldset id="question-{{ answer.question_id }}" tabindex="-1" class="panel question-preview answer-field" data-question="{{ answer.question_id }}" data-kind="{{ answer.question.kind }}">
           <legend class="sr-only">Question {{ forloop.counter }}</legend>
           <div class="question-top">
             <span class="question-number">{{ forloop.counter|stringformat:'02d' }}</span>
             <span class="badge muted">{{ answer.question.get_kind_display }}</span>
             <span class="points">{{ answer.question.points }} points</span>
+            <button type="button" class="text-button flag-question" data-flag="{{ answer.question_id }}" aria-label="Mark question {{ forloop.counter }} for review" aria-pressed="{% if answer.flagged %}true{% else %}false{% endif %}">Mark for review</button>
           </div>
           <h2 class="question-prompt preserve" id="prompt-{{ answer.question_id }}">{{ answer.question.prompt }}</h2>
           {% if answer.question.kind == 'choice' %}

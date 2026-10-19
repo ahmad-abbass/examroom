@@ -131,7 +131,7 @@ def finalize_expired(attempt_id):
 
 
 @transaction.atomic
-def save_answers(attempt_id, student, payload, revision, submit=False):
+def save_answers(attempt_id, student, payload, revision, submit=False, flags=None):
     attempt = Attempt.objects.select_for_update().get(pk=attempt_id, student=student)
     now = timezone.now()
     if attempt.submitted_at:
@@ -144,6 +144,14 @@ def save_answers(attempt_id, student, payload, revision, submit=False):
     answers = {str(a.question_id): a for a in attempt.answers.select_related("question")}
     if not isinstance(payload, dict) or set(payload) - set(answers):
         raise ValidationError("Answers must belong to this exam.")
+    if flags is None:
+        flags = {}
+    if (
+        not isinstance(flags, dict)
+        or set(flags) - set(answers)
+        or any(type(value) is not bool for value in flags.values())
+    ):
+        raise ValidationError("Review flags must be true or false and belong to this exam.")
     for question_id, value in payload.items():
         answer = answers[question_id]
         if answer.question.kind == Question.Kind.CHOICE:
@@ -157,6 +165,10 @@ def save_answers(attempt_id, student, payload, revision, submit=False):
                 raise ValidationError("Written answers must contain at most 10,000 characters.")
             answer.text = value
         answer.save(update_fields=["selected_option", "text"])
+    for question_id, value in flags.items():
+        answer = answers[question_id]
+        answer.flagged = value
+        answer.save(update_fields=["flagged"])
     attempt.revision += 1
     attempt.save(update_fields=["revision"])
     if submit:
