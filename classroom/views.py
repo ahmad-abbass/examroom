@@ -20,7 +20,15 @@ from django.views.decorators.http import require_POST
 
 from .forms import CourseForm, ExamForm, QuestionForm, RegisterForm
 from .models import Attempt, Course, Enrollment, Exam, LoginThrottle, Profile, Question
-from .services import RevisionConflict, available, finalize_expired, publish_exam, save_answers, start_attempt
+from .services import (
+    RevisionConflict,
+    available,
+    duplicate_exam,
+    finalize_expired,
+    publish_exam,
+    save_answers,
+    start_attempt,
+)
 
 
 def role_required(role):
@@ -212,6 +220,15 @@ def exam_create(request, course_id):
         "classroom/form.html",
         {"form": form, "title": "Create an exam", "eyebrow": course.name, "button": "Continue to questions"},
     )
+
+
+@teacher_only
+@require_POST
+def exam_duplicate(request, pk):
+    get_object_or_404(Exam, pk=pk, course__teacher=request.user)
+    draft = duplicate_exam(pk, request.user)
+    messages.success(request, "Exam copied to a fresh draft. Set its schedule before publishing.")
+    return redirect("exam_edit", pk=draft.pk)
 
 
 @teacher_only

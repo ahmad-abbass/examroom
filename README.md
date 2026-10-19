@@ -21,6 +21,8 @@ Built with **Python, Django, SQLite, and vanilla JavaScript**. No frontend build
 
 The server enforces ownership, enrollment, deadlines, revisions, and scores. Correct answer keys are not sent to students before results are available. Multiple-choice answers are graded on submission; written responses require a teacher's review.
 
+Teachers can duplicate an existing exam into a fresh draft. Questions and answer keys are copied, while schedules, publication, released results, and student attempts are reset. Editing the copy leaves the original assessment untouched.
+
 ## Run locally
 
 Requires Python **3.12 or 3.13**. These commands use a Unix-like shell:

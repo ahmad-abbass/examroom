@@ -13,6 +13,33 @@ class RevisionConflict(Exception):
     pass
 
 
+@transaction.atomic
+def duplicate_exam(exam_id, teacher):
+    source = Exam.objects.select_for_update().get(pk=exam_id, course__teacher=teacher)
+    draft = Exam.objects.create(
+        course=source.course,
+        title=f"{source.title[:153]} (copy)",
+        instructions=source.instructions,
+        duration_minutes=source.duration_minutes,
+    )
+    Question.objects.bulk_create(
+        [
+            Question(
+                exam=draft,
+                position=position,
+                kind=question.kind,
+                prompt=question.prompt,
+                points=question.points,
+                options=list(question.options),
+                correct_option=question.correct_option,
+                explanation=question.explanation,
+            )
+            for position, question in enumerate(source.questions.all())
+        ]
+    )
+    return draft
+
+
 def available(exam, now=None):
     now = now or timezone.now()
     return (
