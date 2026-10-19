@@ -111,6 +111,7 @@ class Attempt(models.Model):
     submitted_at = models.DateTimeField(null=True, blank=True)
     timed_out = models.BooleanField(default=False)
     revision = models.PositiveIntegerField(default=0)
+    grading_revision = models.PositiveIntegerField(default=0)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["exam", "student"], name="one_attempt_per_student")]

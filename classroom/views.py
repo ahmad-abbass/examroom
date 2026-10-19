@@ -28,6 +28,7 @@ from .services import (
     available,
     duplicate_exam,
     finalize_expired,
+    grade_submission,
     move_question,
     publish_exam,
     save_answers,
@@ -485,6 +486,10 @@ def review(request, pk):
         return redirect("gradebook", pk=attempt.exam_id)
     written = list(attempt.answers.filter(question__kind=Question.Kind.TEXT).select_related("question"))
     form = forms.Form(request.POST if request.method == "POST" else None)
+    if written:
+        form.fields["grading_revision"] = forms.IntegerField(
+            min_value=0, initial=attempt.grading_revision, widget=forms.HiddenInput
+        )
     for answer in written:
         form.fields[f"points_{answer.pk}"] = forms.IntegerField(
             min_value=0,
@@ -500,14 +505,27 @@ def review(request, pk):
             widget=forms.Textarea(attrs={"rows": 2}),
         )
     if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            Attempt.objects.select_for_update().get(pk=pk)
-            for answer in written:
-                answer.awarded_points = form.cleaned_data[f"points_{answer.pk}"]
-                answer.feedback = form.cleaned_data[f"feedback_{answer.pk}"]
-                answer.save(update_fields=["awarded_points", "feedback"])
-        messages.success(request, "Grades and feedback saved.")
-        return redirect("gradebook", pk=attempt.exam_id)
+        grades = {
+            answer.pk: (form.cleaned_data[f"points_{answer.pk}"], form.cleaned_data[f"feedback_{answer.pk}"])
+            for answer in written
+        }
+        try:
+            grade_submission(pk, request.user, grades, form.cleaned_data.get("grading_revision", 0))
+        except RevisionConflict:
+            form.add_error(
+                None, "This review was saved in another tab. Reload the latest review before saving again."
+            )
+            return render(
+                request,
+                "classroom/review.html",
+                {"attempt": attempt, "form": form, "review_conflict": True},
+                status=409,
+            )
+        except ValidationError as error:
+            form.add_error(None, error.messages[0])
+        else:
+            messages.success(request, "Grades and feedback saved.")
+            return redirect("gradebook", pk=attempt.exam_id)
     return render(request, "classroom/review.html", {"attempt": attempt, "form": form})
 
 

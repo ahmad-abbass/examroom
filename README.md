@@ -31,6 +31,8 @@ The gradebook includes enrolled students who have not started, plus active, unre
 
 Students can jump between questions, find unanswered items, and mark questions for review. Review marks use the same autosave revision and deadline as answers, survive refresh, and never change the score. Submission confirms the unanswered and marked counts before locking the attempt.
 
+Teacher reviews have a separate grading revision. If two tabs review the same submission, the later stale save receives a conflict and a link to reload the current review instead of replacing newer grades or feedback.
+
 ## Run locally
 
 Requires Python **3.12 or 3.13**. These commands use a Unix-like shell:

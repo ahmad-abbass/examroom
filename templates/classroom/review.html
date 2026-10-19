@@ -43,8 +43,11 @@
     {% if form.fields %}
       <p class="subtle">Multiple-choice answers are already scored. Review the written responses below.</p>
       <form method="post" class="stack">
-        {% csrf_token %}{{ form.as_div }}<button class="button">Save review ↗</button>
+        {% csrf_token %}{{ form.as_div }}<button class="button" {% if review_conflict %}disabled{% endif %}>Save review ↗</button>
       </form>
+      {% if review_conflict %}
+        <a class="button secondary" href="{% url 'review' attempt.pk %}">Reload latest review</a>
+      {% endif %}
     {% else %}
       <p class="subtle">All questions were automatically graded. You can release the results from the gradebook.</p>
       <a class="button secondary" href="{% url 'gradebook' attempt.exam_id %}">Back to gradebook ↗</a>
