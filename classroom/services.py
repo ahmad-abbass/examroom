@@ -40,6 +40,27 @@ def duplicate_exam(exam_id, teacher):
     return draft
 
 
+@transaction.atomic
+def move_question(exam_id, question_id, teacher, direction):
+    exam = Exam.objects.select_for_update().get(pk=exam_id, course__teacher=teacher)
+    if exam.published:
+        raise PermissionDenied("Published questions cannot be reordered.")
+    if direction not in {"up", "down"}:
+        raise ValidationError("Choose a valid move direction.")
+    questions = list(exam.questions.all())
+    index = next((i for i, question in enumerate(questions) if question.pk == question_id), None)
+    if index is None:
+        raise ValidationError("That question does not belong to this exam.")
+    destination = index + (-1 if direction == "up" else 1)
+    if destination not in range(len(questions)):
+        return False
+    questions[index], questions[destination] = questions[destination], questions[index]
+    for position, question in enumerate(questions):
+        question.position = position
+    Question.objects.bulk_update(questions, ["position"])
+    return True
+
+
 def available(exam, now=None):
     now = now or timezone.now()
     return (

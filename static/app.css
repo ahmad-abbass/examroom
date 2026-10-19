@@ -962,6 +962,8 @@ td small {
 }
 .question-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   justify-content: space-between;
   align-items: center;
   border-top: 1px solid var(--line);
