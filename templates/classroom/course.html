@@ -18,9 +18,19 @@
     <div class="join-code-panel">
       <div>
         <span class="eyebrow">INVITE YOUR STUDENTS</span>
-        <p>Share this code. Students can join from their dashboard.</p>
+        <p>{% if course.join_enabled %}Share this code. Students can join from their dashboard.{% else %}New joins are paused. Enrolled students still have access.{% endif %}</p>
       </div>
       <code>{{ course.join_code }}</code>
+    </div>
+    <div class="actions invitation-actions">
+      <form method="post" action="{% url 'course_invitation' course.pk %}">
+        {% csrf_token %}
+        <button class="button secondary" name="action" value="{% if course.join_enabled %}close{% else %}open{% endif %}">{% if course.join_enabled %}Pause new joins{% else %}Reopen invitations{% endif %}</button>
+      </form>
+      <form method="post" action="{% url 'course_invitation' course.pk %}" data-confirm="Replace the join code? The old code will stop working. Enrolled students keep their access.">
+        {% csrf_token %}
+        <button class="button secondary" name="action" value="rotate">Replace join code</button>
+      </form>
     </div>
   {% endif %}
   <div class="section-heading">

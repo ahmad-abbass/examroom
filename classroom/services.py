@@ -6,11 +6,29 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from .models import Answer, Attempt, Enrollment, Exam, Question
+from .models import Answer, Attempt, Course, Enrollment, Exam, Question, join_code
 
 
 class RevisionConflict(Exception):
     pass
+
+
+@transaction.atomic
+def update_invitation(course_id, teacher, action):
+    course = Course.objects.select_for_update().get(pk=course_id, teacher=teacher)
+    if action == "rotate":
+        for _ in range(5):
+            code = join_code()
+            if not Course.objects.filter(join_code=code).exists():
+                course.join_code = code
+                course.save(update_fields=["join_code"])
+                return course
+        raise ValidationError("A new code could not be generated. Please try again.")
+    if action not in {"open", "close"}:
+        raise ValidationError("Choose a valid invitation action.")
+    course.join_enabled = action == "open"
+    course.save(update_fields=["join_enabled"])
+    return course
 
 
 @transaction.atomic

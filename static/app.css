@@ -1052,6 +1052,9 @@ td small {
   gap: 20px;
   align-items: center;
 }
+.invitation-actions {
+  margin-top: 14px;
+}
 .join-code-panel p {
   color: #7e8c6e;
   font-size: 12px;

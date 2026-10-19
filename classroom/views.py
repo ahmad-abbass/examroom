@@ -29,6 +29,7 @@ from .services import (
     publish_exam,
     save_answers,
     start_attempt,
+    update_invitation,
 )
 
 
@@ -198,13 +199,34 @@ def course_detail(request, pk):
 @require_POST
 def join_course(request):
     code = request.POST.get("code", "").strip().upper()
-    course = Course.objects.filter(join_code=code).first()
-    if not course:
-        messages.error(request, "That join code was not found. Ask your teacher to check it.")
-    else:
-        Enrollment.objects.get_or_create(course=course, student=request.user)
-        messages.success(request, f"You joined {course.name}.")
+    with transaction.atomic():
+        course = Course.objects.select_for_update().filter(join_code=code).first()
+        if not course:
+            messages.error(request, "That join code was not found. Ask your teacher to check it.")
+        elif not course.join_enabled:
+            messages.error(request, "New joins are paused for this class. Contact your teacher.")
+        else:
+            Enrollment.objects.get_or_create(course=course, student=request.user)
+            messages.success(request, f"You joined {course.name}.")
     return redirect("dashboard")
+
+
+@teacher_only
+@require_POST
+def course_invitation(request, pk):
+    get_object_or_404(Course, pk=pk, teacher=request.user)
+    action = request.POST.get("action")
+    try:
+        update_invitation(pk, request.user, action)
+        text = {
+            "rotate": "Join code replaced. The previous code no longer works.",
+            "open": "New students can join this class.",
+            "close": "New joins paused. Enrolled students keep their access.",
+        }[action]
+        messages.success(request, text)
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
+    return redirect("course", pk=pk)
 
 
 @teacher_only
