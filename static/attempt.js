@@ -7,6 +7,18 @@
   const error = document.querySelector("#save-error");
   const retry = document.querySelector("#retry-save");
   const submitButton = document.querySelector("#submit-exam");
+  const questionLinks = new Map(
+    [...form.querySelectorAll("[data-question-link]")].map((link) => [
+      link.dataset.questionLink,
+      link,
+    ]),
+  );
+  const flagButtons = new Map(
+    [...form.querySelectorAll("[data-flag]")].map((button) => [
+      button.dataset.flag,
+      button,
+    ]),
+  );
   let revision = Number(form.dataset.revision),
     dirty = false,
     saving = false,
@@ -21,10 +33,36 @@
   );
   const timerStarted = performance.now();
 
+  function isAnswered(field) {
+    return field.dataset.kind === "choice"
+      ? Boolean(field.querySelector("input:checked"))
+      : Boolean(field.querySelector("textarea").value.trim());
+  }
+
+  function isFlagged(field) {
+    return (
+      flagButtons.get(field.dataset.question).getAttribute("aria-pressed") ===
+      "true"
+    );
+  }
+
+  function collectFlags() {
+    return Object.fromEntries(
+      fields.map((field) => [field.dataset.question, isFlagged(field)]),
+    );
+  }
+
+  function navigateTo(field) {
+    if (!field) return;
+    field.scrollIntoView({ block: "center" });
+    field.focus({ preventScroll: true });
+  }
+
   function collect() {
     const answers = {};
     let answered = 0;
-    for (const field of fields) {
+    let marked = 0;
+    for (const [index, field] of fields.entries()) {
       const input =
         field.dataset.kind === "choice"
           ? field.querySelector("input:checked")
@@ -35,11 +73,25 @@
             ? Number(input.value)
             : null
           : input.value;
-      if (input && (field.dataset.kind === "choice" || input.value.trim()))
-        answered++;
+      const hasAnswer = isAnswered(field);
+      const flagged = isFlagged(field);
+      if (hasAnswer) answered++;
+      if (flagged) marked++;
+      const link = questionLinks.get(field.dataset.question);
+      link.classList.toggle("answered", hasAnswer);
+      link.classList.toggle("marked", flagged);
+      link.setAttribute(
+        "aria-label",
+        `Question ${index + 1}: ${hasAnswer ? "answered" : "unanswered"}${flagged ? ", marked for review" : ""}`,
+      );
     }
     document.querySelector("#answer-progress").textContent =
       `${answered} of ${fields.length} answered`;
+    document.querySelector("#flag-progress").textContent =
+      `${marked} marked for review`;
+    document.querySelector("#find-unanswered").disabled =
+      answered === fields.length;
+    document.querySelector("#find-flagged").disabled = marked === 0;
     return answers;
   }
 
@@ -62,6 +114,7 @@
         },
         body: JSON.stringify({
           answers: collect(),
+          flags: collectFlags(),
           revision,
           submit: submitThisRequest,
         }),
@@ -111,7 +164,6 @@
       }
     } finally {
       saving = false;
-      // Serialize writes; a submit pressed during an autosave must be sent afterwards.
       if (
         !finished &&
         !conflict &&
@@ -131,6 +183,31 @@
     debounce = setTimeout(save, 650);
   }
   form.addEventListener("input", changed);
+  flagButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const pressed = button.getAttribute("aria-pressed") === "true";
+      button.setAttribute("aria-pressed", String(!pressed));
+      changed();
+    });
+  });
+  questionLinks.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      navigateTo(
+        fields.find(
+          (field) => field.dataset.question === link.dataset.questionLink,
+        ),
+      );
+    });
+  });
+  document
+    .querySelector("#find-unanswered")
+    .addEventListener("click", () =>
+      navigateTo(fields.find((field) => !isAnswered(field))),
+    );
+  document
+    .querySelector("#find-flagged")
+    .addEventListener("click", () => navigateTo(fields.find(isFlagged)));
   form.querySelectorAll("[data-clear]").forEach((button) =>
     button.addEventListener("click", () => {
       const field = fields.find(
@@ -144,7 +221,13 @@
   );
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!window.confirm("Submit your exam? Your answers will be locked."))
+    const unanswered = fields.filter((field) => !isAnswered(field)).length;
+    const marked = fields.filter(isFlagged).length;
+    if (
+      !window.confirm(
+        `Submit your exam? ${unanswered} unanswered; ${marked} marked for review. Your answers will be locked.`,
+      )
+    )
       return;
     submitting = true;
     submitButton.disabled = true;

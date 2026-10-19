@@ -29,6 +29,8 @@ Class owners can pause/reopen new joins or replace a shared join code. The old c
 
 The gradebook includes enrolled students who have not started, plus active, unreviewed, and graded attempts. Search by name/username or filter by status. Pages contain 25 students; CSV exports use the same filters and include every matching row across pages. Summary statistics always describe the entire class.
 
+Students can jump between questions, find unanswered items, and mark questions for review. Review marks use the same autosave revision and deadline as answers, survive refresh, and never change the score. Submission confirms the unanswered and marked counts before locking the attempt.
+
 ## Run locally
 
 Requires Python **3.12 or 3.13**. These commands use a Unix-like shell:

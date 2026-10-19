@@ -1212,6 +1212,54 @@ td small {
 }
 .answer-field {
   min-width: 0;
+  scroll-margin-top: 25px;
+}
+.question-navigator {
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.question-navigator h2 {
+  font-size: 15px;
+  margin: 0;
+}
+.question-navigator p {
+  margin: 12px 0 0;
+}
+.question-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.question-links a {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #dce2d4;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.question-links .answered {
+  background: #e7efdf;
+  border-color: #a7bc90;
+}
+.question-links .marked {
+  box-shadow: inset 0 -4px #b49055;
+}
+.flag-question {
+  padding: 6px 8px;
+  border: 1px solid #e4e4d6;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.flag-question[aria-pressed="true"] {
+  background: #f4ebda;
+  border-color: #b49055;
+  color: #795d2a;
+}
+.answer-field .question-top {
+  flex-wrap: wrap;
 }
 .answer-option {
   display: flex;

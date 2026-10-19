@@ -398,10 +398,16 @@ def attempt_save(request, pk):
             not isinstance(payload, dict)
             or type(payload.get("revision")) is not int
             or type(payload.get("submit", False)) is not bool
+            or ("flags" in payload and not isinstance(payload["flags"], dict))
         ):
             raise ValueError
         attempt = save_answers(
-            pk, request.user, payload.get("answers"), payload["revision"], payload.get("submit", False)
+            pk,
+            request.user,
+            payload.get("answers"),
+            payload["revision"],
+            payload.get("submit", False),
+            payload.get("flags", {}),
         )
     except (ValueError, TypeError, UnicodeDecodeError, ValidationError):
         return JsonResponse({"error": "Invalid answers. Your previously saved work is safe."}, status=400)
