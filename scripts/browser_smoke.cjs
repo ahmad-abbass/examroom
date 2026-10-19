@@ -363,9 +363,50 @@ async function run() {
     path: path.join(root, "test-results/student-results.png"),
     fullPage: true,
   });
+  const largeExam = JSON.parse(
+    manage([
+      "shell",
+      "-c",
+      [
+        "import json",
+        "from django.contrib.auth.models import User",
+        "from classroom.models import Course, Enrollment, Exam, Question",
+        "teacher = User.objects.get(username='demo.teacher')",
+        "student = User.objects.get(username='demo.ahmad')",
+        "course = Course.objects.create(teacher=teacher, name='Written assessments', code='WRITE')",
+        "Enrollment.objects.create(course=course, student=student)",
+        "exam = Exam.objects.create(course=course, title='Long written answers', duration_minutes=5, published=True)",
+        "Question.objects.bulk_create([Question(exam=exam, position=i, kind='text', prompt=f'Written response {i + 1}') for i in range(4)])",
+        "print(json.dumps({'id': exam.pk}))",
+      ].join("\n"),
+    ])
+      .toString()
+      .trim()
+      .split("\n")
+      .at(-1),
+  );
+  await student.goto(`${base}/exams/${largeExam.id}/`);
+  await student
+    .getByRole("button", { name: "Start exam", exact: false })
+    .click();
+  const longResponse = "ن".repeat(10000);
+  const writtenFields = student.getByLabel("Your written response", {
+    exact: true,
+  });
+  assert.equal(await writtenFields.count(), 4);
+  for (const field of await writtenFields.all()) await field.fill(longResponse);
+  await student
+    .getByRole("status")
+    .filter({ hasText: "All changes saved" })
+    .waitFor({ timeout: 10000 });
+  await student.reload();
+  for (const field of await writtenFields.all())
+    assert.equal(await field.inputValue(), longResponse);
+  await student.getByRole("button", { name: "Submit exam" }).click();
+  await student.getByRole("heading", { name: "All handed in" }).waitFor();
   assert.equal(errors.length, 0, `Browser errors: ${errors.join("; ")}`);
   console.log(
-    "PASS: teacher controls invites, reorders and copies exams, filters the complete roster, and exports CSV; student navigates and marks questions, autosaves across network retry and reload, rejects stale edits, and submits; teacher grades with stale-review protection and releases the correct results. Mobile dashboard, builder, and exam overflow and uncaught browser errors checked.",
+    "PASS: teacher controls invites, reorders and copies exams, filters the complete roster, and exports CSV; student navigates and marks questions, autosaves across network retry and reload, rejects stale edits, and submits; teacher grades with stale-review protection and releases the correct results. An 80 KB UTF-8 answer payload saves, reloads, and submits. Mobile dashboard, builder, and exam overflow and uncaught browser errors checked.",
   );
 }
 run()

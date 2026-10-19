@@ -1,5 +1,7 @@
 # ExamRoom
 
+[![Tests and checks](https://github.com/ahmad-abbass/examroom/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ahmad-abbass/examroom/actions/workflows/ci.yml)
+
 **A little less admin. A little more room for learning.**
 
 ExamRoom is a small, full-stack exam platform for teachers and students. Teachers create classes, build timed assessments, review written responses, and release results. Students join with a class code, take an exam in a focused workspace, and get their grades and feedback when the teacher releases them.
@@ -100,7 +102,7 @@ npm run test:e2e
 
 In a restricted test environment, `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` can point to an installed Chromium binary. The default uses the browser matched to the pinned Playwright version.
 
-The browser check starts its own temporary database and Django server. It signs in as a teacher, creates and publishes a mixed-question exam, joins as a student, verifies autosave across refresh, tests stale-tab conflicts and a network interruption/retry, submits, grades, releases, and checks the final result. It also checks mobile dashboard/exam overflow and uncaught browser errors. It does **not** modify your normal development database. Screenshots are written to the ignored `test-results/` directory.
+The browser check starts its own temporary database and Django server. It exercises invitation controls, question ordering/copying, gradebook filters and CSV, student navigation/review marks, autosave across refresh and a network interruption, stale student/teacher tabs, grading/release, and final results. It also checks an 80 KB UTF-8 written-answer payload, mobile dashboard/builder/exam overflow, and uncaught browser errors. It does **not** modify your normal development database. Screenshots are written to the ignored `test-results/` directory.
 
 GitHub Actions runs backend checks on Python 3.12/3.13 and a Chromium workflow check. A configured workflow is not a claim that a particular remote run has passed; inspect the repository's Actions tab for results.
 

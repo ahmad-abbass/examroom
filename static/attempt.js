@@ -104,20 +104,21 @@
       ? "Submitting your exam…"
       : "Saving your answers…";
     try {
+      const body = JSON.stringify({
+        answers: collect(),
+        flags: collectFlags(),
+        revision,
+        submit: submitThisRequest,
+      });
       const response = await fetch(form.dataset.saveUrl, {
         method: "POST",
         credentials: "same-origin",
-        keepalive: true,
+        keepalive: new TextEncoder().encode(body).byteLength <= 60000,
         headers: {
           "Content-Type": "application/json",
           "X-CSRFToken": form.querySelector("[name=csrfmiddlewaretoken]").value,
         },
-        body: JSON.stringify({
-          answers: collect(),
-          flags: collectFlags(),
-          revision,
-          submit: submitThisRequest,
-        }),
+        body,
       });
       if (response.status === 409) {
         conflict = true;
