@@ -14,6 +14,33 @@ class RevisionConflict(Exception):
 
 
 @transaction.atomic
+def grade_submission(attempt_id, teacher, grades, revision):
+    attempt = Attempt.objects.select_for_update().get(pk=attempt_id, exam__course__teacher=teacher)
+    if not attempt.submitted_at:
+        raise ValidationError("Only submitted attempts can be reviewed.")
+    if type(revision) is not int or revision != attempt.grading_revision:
+        raise RevisionConflict
+    answers = list(attempt.answers.filter(question__kind=Question.Kind.TEXT).select_related("question"))
+    if not isinstance(grades, dict) or set(grades) != {answer.pk for answer in answers}:
+        raise ValidationError("Review every written response in this submission.")
+    for answer in answers:
+        value = grades[answer.pk]
+        if not isinstance(value, (tuple, list)) or len(value) != 2:
+            raise ValidationError("Provide points and feedback for each written response.")
+        points, feedback = value
+        if type(points) is not int or not 0 <= points <= answer.question.points:
+            raise ValidationError("Points must be within the question's maximum.")
+        if not isinstance(feedback, str) or len(feedback) > 2000:
+            raise ValidationError("Feedback must contain at most 2,000 characters.")
+        answer.awarded_points = points
+        answer.feedback = feedback
+        answer.save(update_fields=["awarded_points", "feedback"])
+    attempt.grading_revision += 1
+    attempt.save(update_fields=["grading_revision"])
+    return attempt
+
+
+@transaction.atomic
 def update_invitation(course_id, teacher, action):
     course = Course.objects.select_for_update().get(pk=course_id, teacher=teacher)
     if action == "rotate":

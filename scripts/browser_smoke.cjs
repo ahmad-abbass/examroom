@@ -1,4 +1,3 @@
-/* Isolated end-to-end check: build, assign, autosave, submit, grade and release. */
 const { chromium } = require("playwright");
 const { spawn, execFileSync } = require("node:child_process");
 const { mkdtempSync, mkdirSync, rmSync, existsSync } = require("node:fs");
@@ -95,9 +94,18 @@ async function run() {
   await teacher
     .getByRole("button", { name: "Create class", exact: false })
     .click();
-  const joinCode = (
+  let joinCode = (
     await teacher.locator(".join-code-panel code").innerText()
   ).trim();
+  await teacher.getByRole("button", { name: "Pause new joins" }).click();
+  await teacher.getByRole("button", { name: "Reopen invitations" }).waitFor();
+  await teacher.getByRole("button", { name: "Replace join code" }).click();
+  const replacementCode = (
+    await teacher.locator(".join-code-panel code").innerText()
+  ).trim();
+  assert.notEqual(replacementCode, joinCode);
+  joinCode = replacementCode;
+  await teacher.getByRole("button", { name: "Reopen invitations" }).click();
   await teacher
     .getByRole("link", { name: "Create exam", exact: false })
     .click();
@@ -133,8 +141,40 @@ async function run() {
     .fill("Explain why the search space shrinks.");
   await teacher.getByLabel("Points", { exact: false }).fill("20");
   await teacher.getByRole("button", { name: "Save question" }).click();
+  await teacher
+    .getByRole("button", { name: "Move question 2 up", exact: true })
+    .click();
+  assert.match(
+    await teacher.locator(".question-preview h3").first().innerText(),
+    /search space shrinks/,
+  );
+  await teacher
+    .getByRole("button", { name: "Move question 1 down", exact: true })
+    .click();
+  assert.match(
+    await teacher.locator(".question-preview h3").first().innerText(),
+    /binary-search complexity/,
+  );
+  await teacher.setViewportSize({ width: 390, height: 844 });
+  assert.equal(
+    await teacher.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+    false,
+    "Mobile builder overflows",
+  );
+  await teacher.setViewportSize({ width: 1440, height: 1100 });
   await teacher.getByRole("button", { name: "Publish exam" }).click();
   await teacher.getByRole("link", { name: "Gradebook" }).waitFor();
+  await teacher.getByRole("button", { name: "Duplicate exam" }).click();
+  await teacher
+    .getByRole("heading", { name: "Algorithms check-in (copy).", exact: true })
+    .waitFor();
+  assert.equal(await teacher.locator(".question-preview").count(), 2);
+  assert(
+    await teacher.getByRole("button", { name: "Publish exam" }).isVisible(),
+  );
+  await teacher.goto(base + examPath + "gradebook/");
 
   await signIn(student, "demo.ahmad");
   await student.setViewportSize({ width: 390, height: 844 });
@@ -151,6 +191,21 @@ async function run() {
   });
   await student.getByLabel("Class join code").fill(joinCode);
   await student.getByRole("button", { name: "Join class" }).click();
+  await teacher.reload();
+  await teacher
+    .getByRole("cell", { name: "Not started", exact: true })
+    .waitFor();
+  await teacher.getByLabel("Find a student").fill("no matching name");
+  await teacher.getByRole("button", { name: "Apply filters" }).click();
+  await teacher
+    .getByRole("heading", { name: "No students match this view." })
+    .waitFor();
+  await teacher.getByRole("link", { name: "Clear filters" }).click();
+  const csv = await teacherContext.request.get(
+    base + examPath + "export/?status=not_started",
+  );
+  assert.equal(csv.status(), 200);
+  assert.match(await csv.text(), /demo\.ahmad,Not started,,30,/);
   await student.goto(base + examPath);
   assert.equal(
     await student.getByText("Logarithmic", { exact: true }).count(),
@@ -169,6 +224,23 @@ async function run() {
   );
   const staleTab = await studentContext.newPage();
   await staleTab.goto(student.url());
+  await student.getByRole("button", { name: "Find unanswered" }).click();
+  assert(
+    await student
+      .locator(".answer-field")
+      .first()
+      .evaluate((field) => field === document.activeElement),
+  );
+  await student
+    .getByRole("button", { name: "Mark question 2 for review", exact: true })
+    .click();
+  await student.getByRole("button", { name: "Review marked" }).click();
+  assert(
+    await student
+      .locator(".answer-field")
+      .nth(1)
+      .evaluate((field) => field === document.activeElement),
+  );
   await student.getByLabel("Logarithmic", { exact: true }).check();
   await student
     .getByLabel("Your written response")
@@ -208,7 +280,17 @@ async function run() {
   );
   assert.match(
     await student.getByLabel("Your written response").inputValue(),
-    /discards half/,
+    /discards half.*Network retry verified\./,
+  );
+  assert.equal(
+    await student
+      .getByRole("button", { name: "Mark question 2 for review", exact: true })
+      .getAttribute("aria-pressed"),
+    "true",
+  );
+  assert.match(await student.locator("#flag-progress").innerText(), /1 marked/);
+  assert(
+    await student.getByRole("button", { name: "Find unanswered" }).isDisabled(),
   );
   await student.setViewportSize({ width: 1360, height: 1000 });
   await student.evaluate(() => {
@@ -229,11 +311,33 @@ async function run() {
 
   await teacher.goto(base + examPath + "gradebook/");
   await teacher.getByRole("link", { name: "Review", exact: false }).click();
+  const reviewURL = teacher.url();
+  const staleReview = await teacherContext.newPage();
+  staleReview.on("pageerror", (error) => errors.push(error.message));
+  await staleReview.goto(reviewURL);
   await teacher.getByLabel("Points for question 2").fill("18");
   await teacher
     .getByLabel(/^Feedback/)
     .fill("Clear reasoning. Mention the sorted-array precondition.");
   await teacher.getByRole("button", { name: "Save review" }).click();
+  await staleReview.getByLabel("Points for question 2").fill("1");
+  const [conflictResponse] = await Promise.all([
+    staleReview.waitForResponse(
+      (response) =>
+        response.url() === reviewURL && response.request().method() === "POST",
+    ),
+    staleReview.getByRole("button", { name: "Save review" }).click(),
+  ]);
+  assert.equal(conflictResponse.status(), 409);
+  assert(
+    await staleReview.getByRole("button", { name: "Save review" }).isDisabled(),
+  );
+  await staleReview.getByRole("link", { name: "Reload latest review" }).click();
+  assert.equal(
+    await staleReview.getByLabel("Points for question 2").inputValue(),
+    "18",
+  );
+  await staleReview.close();
   await teacher.getByRole("button", { name: "Release results" }).click();
   await student.reload();
   await student.getByRole("heading", { name: "A moment to reflect" }).waitFor();
@@ -261,7 +365,7 @@ async function run() {
   });
   assert.equal(errors.length, 0, `Browser errors: ${errors.join("; ")}`);
   console.log(
-    "PASS: teacher builds and publishes; student joins, autosaves, handles a stale tab and a network interruption, reloads and submits; teacher grades and releases; student sees correct results. Mobile dashboard/exam overflow and uncaught browser errors checked.",
+    "PASS: teacher controls invites, reorders and copies exams, filters the complete roster, and exports CSV; student navigates and marks questions, autosaves across network retry and reload, rejects stale edits, and submits; teacher grades with stale-review protection and releases the correct results. Mobile dashboard, builder, and exam overflow and uncaught browser errors checked.",
   );
 }
 run()

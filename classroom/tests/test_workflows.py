@@ -290,10 +290,14 @@ class ExamWorkflowTests(TestCase):
         self.assertEqual(self.client.post(url, {f"points_{answer.pk}": 20}).status_code, 404)
         self.client.force_login(self.teacher)
         for points in [-1, 21]:
-            self.assertEqual(self.client.post(url, {f"points_{answer.pk}": points}).status_code, 200)
+            self.assertEqual(
+                self.client.post(url, {f"points_{answer.pk}": points, "grading_revision": 0}).status_code, 200
+            )
             self.assertIsNone(Answer.objects.get(pk=answer.pk).awarded_points)
         self.assertEqual(
-            self.client.post(url, {f"points_{answer.pk}": 18, f"feedback_{answer.pk}": "Good"}).status_code,
+            self.client.post(
+                url, {f"points_{answer.pk}": 18, f"feedback_{answer.pk}": "Good", "grading_revision": 0}
+            ).status_code,
             302,
         )
         self.assertEqual(Answer.objects.get(pk=answer.pk).awarded_points, 18)
