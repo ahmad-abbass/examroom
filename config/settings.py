@@ -83,7 +83,7 @@ SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_AGE = 8 * 60 * 60
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
-DATA_UPLOAD_MAX_MEMORY_SIZE = 1_200_000
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2_100_000
 # Enable only when a trusted reverse proxy removes incoming forwarded headers.
 if os.environ.get("DJANGO_TRUST_PROXY", "0") == "1":
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

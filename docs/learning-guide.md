@@ -33,6 +33,10 @@ Open the same attempt in two tabs. Save different answers in each and explain th
 - Why does a transaction matter if a payload contains several answers?
 - What does SQLite's `IMMEDIATE` transaction mode do? What would change with PostgreSQL?
 - Why does the autosave endpoint return 409 instead of overwriting an answer from another tab?
+- Why do teacher reviews need a different revision from student autosaves?
+- Which state must reset when an exam is copied, and which question values can be reused?
+- Why should the gradebook show a student who has never started an attempt?
+- How can 40,000 characters become more than 64 KB in an HTTP request, and why does that matter for keepalive saves?
 - Which fields can a student register or submit, and which fields are server-owned?
 - How could a CSV cell become a formula, and how does the export reduce that risk?
 - What happens if the browser closes and the expiry command does not run immediately?
