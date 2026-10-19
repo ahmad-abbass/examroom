@@ -11,6 +11,10 @@
       <p class="subtle">{{ exam.questions.count }} questions <span class="middot">·</span> {{ exam.total_points }} points <span class="middot">·</span> {{ exam.duration_minutes }} minutes</p>
     </div>
     <div class="actions">
+      <form method="post" action="{% url 'exam_duplicate' exam.pk %}">
+        {% csrf_token %}
+        <button class="button secondary">Duplicate exam</button>
+      </form>
       <a class="button secondary" href="{% url 'gradebook' exam.pk %}">Gradebook ↗</a>
       {% if not exam.published %}
         <form method="post" action="{% url 'exam_publish' exam.pk %}" data-confirm="Publish this exam? Its questions and timing will be frozen.">
