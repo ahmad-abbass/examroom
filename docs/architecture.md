@@ -67,6 +67,8 @@ Published assessments are frozen through application routes. Trusted operators w
 
 ## Teacher workflows
 
+An exam's owner can preview draft or published questions with the same answer controls used by students. Preview hides answer keys and explanations, and responses exist only in the current page. The GET/HEAD-only route creates no attempts or answers; its separate browser controller supports navigation and reset without calling autosave or submission endpoints.
+
 Exam duplication copies question rows into a new draft and resets the schedule, publication and release state. It never copies attempts or answers. Draft question moves lock the parent exam, swap adjacent rows, and normalize positions. Invitation changes and student joins lock the course; pausing or rotating a code preserves existing enrollments.
 
 The gradebook combines enrolled students with existing attempts so missing submissions and historical records remain visible. Search/status filters are applied to that common row set. Pagination affects the HTML view only; CSV exports contain every matching row, and summary statistics use the full class. Answers are prefetched so graded-state checks do not add one query per student.
@@ -75,6 +77,7 @@ The gradebook combines enrolled students with existing attempts so missing submi
 
 - `classroom/tests/test_workflows.py`: database-backed security, lifecycle, scoring, validation, CSV, authentication and demo checks.
 - `classroom/tests/test_duplication.py`, `test_ordering.py`, `test_invitations.py`, and `test_gradebooks.py`: teacher workflows, data isolation, filtering/pagination/export, and bounded gradebook queries.
+- `classroom/tests/test_preview.py`: preview permissions, hidden keys, question order, escaping, and isolation from student answers and grades.
 - `classroom/tests/test_review_flags.py`, `test_grading_revisions.py`, and `test_large_saves.py`: persisted marks, stale review protection, transactional grading, and large UTF-8 request bodies.
 - `scripts/browser_smoke.cjs`: a complete two-user browser journey against a temporary database, plus viewport and console checks.
 - `.github/workflows/ci.yml`: backend matrix and browser execution on GitHub Actions.

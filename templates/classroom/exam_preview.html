@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Preview: {{ exam.title }}{% endblock %}
+{% block breadcrumb %}Student preview{% endblock %}
+{% block content %}
+  <a class="back-link" href="{% url 'exam_edit' exam.pk %}">← Back to exam builder</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">{{ exam.course.code }} / STUDENT PREVIEW</p>
+      <h1>{{ exam.title }}</h1>
+    </div>
+    <div class="timer-box">
+      <span>EXAM DURATION</span>
+      <strong>{{ exam.duration_minutes }} min</strong>
+    </div>
+  </div>
+  <div class="notice" id="preview-notice" role="note">Preview only. Answers are not saved or submitted.</div>
+  {% if exam.instructions %}
+    <section class="panel">
+      <h2>Instructions</h2>
+      <p class="preserve">{{ exam.instructions }}</p>
+    </section>
+  {% endif %}
+  <section id="exam-preview">
+    {% if questions %}
+      <div class="attempt-toolbar">
+        <span id="preview-progress" role="status" aria-live="polite">0 of {{ questions|length }} answered</span>
+        <button type="button" class="button secondary" id="reset-preview">Reset preview</button>
+      </div>
+      <section class="panel question-navigator">
+        <div class="actions">
+          <h2>Question navigator</h2>
+          <button type="button" class="button secondary" id="preview-unanswered">Find unanswered</button>
+        </div>
+        <nav class="question-links" aria-label="Question navigator">
+          {% for question in questions %}
+            <a href="#question-{{ question.pk }}" data-question-link="{{ question.pk }}" aria-label="Question {{ forloop.counter }}">{{ forloop.counter }}</a>
+          {% endfor %}
+        </nav>
+        <p class="subtle small">Green: answered. Reset or reload to clear your preview responses.</p>
+      </section>
+      <div class="question-stack">
+        {% for question in questions %}
+          <fieldset id="question-{{ question.pk }}" tabindex="-1" class="panel question-preview answer-field" data-question="{{ question.pk }}" data-kind="{{ question.kind }}">
+            <legend class="sr-only">Question {{ forloop.counter }}</legend>
+            <div class="question-top">
+              <span class="question-number">{{ forloop.counter|stringformat:'02d' }}</span>
+              <span class="badge muted">{{ question.get_kind_display }}</span>
+              <span class="points">{{ question.points }} points</span>
+            </div>
+            <h2 class="question-prompt preserve" id="prompt-{{ question.pk }}">{{ question.prompt }}</h2>
+            {% include 'classroom/answer_inputs.html' with question=question only %}
+          </fieldset>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="panel empty">
+        <h2>No questions to preview yet.</h2>
+        <p class="subtle">Add questions in the exam builder, then try them here.</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}
+{% block scripts %}
+  <script src="{% static 'preview.js' %}" defer></script>
+{% endblock %}

@@ -18,7 +18,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_safe
 
 from .forms import CourseForm, ExamForm, QuestionForm, RegisterForm
 from .gradebooks import STATUSES, filter_rows, gradebook_rows
@@ -256,6 +256,21 @@ def exam_duplicate(request, pk):
     draft = duplicate_exam(pk, request.user)
     messages.success(request, "Exam copied to a fresh draft. Set its schedule before publishing.")
     return redirect("exam_edit", pk=draft.pk)
+
+
+@teacher_only
+@require_safe
+def exam_preview(request, pk):
+    exam = get_object_or_404(
+        Exam.objects.select_related("course").prefetch_related("questions"),
+        pk=pk,
+        course__teacher=request.user,
+    )
+    return render(
+        request,
+        "classroom/exam_preview.html",
+        {"exam": exam, "questions": exam.questions.all()},
+    )
 
 
 @teacher_only

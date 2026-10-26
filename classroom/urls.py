@@ -10,6 +10,7 @@ urlpatterns = [
     path("classes/<int:pk>/invitation/", views.course_invitation, name="course_invitation"),
     path("classes/<int:course_id>/exams/new/", views.exam_create, name="exam_create"),
     path("exams/<int:pk>/edit/", views.exam_edit, name="exam_edit"),
+    path("exams/<int:pk>/preview/", views.exam_preview, name="exam_preview"),
     path("exams/<int:pk>/duplicate/", views.exam_duplicate, name="exam_duplicate"),
     path("exams/<int:pk>/publish/", views.exam_publish, name="exam_publish"),
     path("exams/<int:exam_id>/questions/new/", views.question_edit, name="question_create"),
