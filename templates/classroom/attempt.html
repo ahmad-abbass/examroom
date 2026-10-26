@@ -44,20 +44,7 @@
             <button type="button" class="text-button flag-question" data-flag="{{ answer.question_id }}" aria-label="Mark question {{ forloop.counter }} for review" aria-pressed="{% if answer.flagged %}true{% else %}false{% endif %}">Mark for review</button>
           </div>
           <h2 class="question-prompt preserve" id="prompt-{{ answer.question_id }}">{{ answer.question.prompt }}</h2>
-          {% if answer.question.kind == 'choice' %}
-            <div class="answer-options" role="group" aria-labelledby="prompt-{{ answer.question_id }}">
-              {% for option in answer.question.options %}
-                <label class="answer-option">
-                  <input type="radio" name="question_{{ answer.question_id }}" value="{{ forloop.counter0 }}" {% if answer.selected_option == forloop.counter0 %}checked{% endif %}>
-                  <span>{{ option }}</span>
-                </label>
-              {% endfor %}
-            </div>
-            <button type="button" class="text-button clear-answer" data-clear="{{ answer.question_id }}">Clear selection</button>
-          {% else %}
-            <label class="sr-only" for="answer-{{ answer.question_id }}">Your written response</label>
-            <textarea id="answer-{{ answer.question_id }}" name="question_{{ answer.question_id }}" rows="5" maxlength="10000" placeholder="Make room for your thinking...">{{ answer.text }}</textarea>
-          {% endif %}
+          {% include 'classroom/answer_inputs.html' with question=answer.question answer=answer only %}
         </fieldset>
       {% endfor %}
     </div>

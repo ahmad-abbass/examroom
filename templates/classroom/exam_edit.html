@@ -11,6 +11,7 @@
       <p class="subtle">{{ exam.questions.count }} questions <span class="middot">·</span> {{ exam.total_points }} points <span class="middot">·</span> {{ exam.duration_minutes }} minutes</p>
     </div>
     <div class="actions">
+      <a class="button secondary" href="{% url 'exam_preview' exam.pk %}">Preview as student</a>
       <form method="post" action="{% url 'exam_duplicate' exam.pk %}">
         {% csrf_token %}
         <button class="button secondary">Duplicate exam</button>

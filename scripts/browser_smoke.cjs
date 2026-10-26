@@ -164,6 +164,93 @@ async function run() {
     "Mobile builder overflows",
   );
   await teacher.setViewportSize({ width: 1440, height: 1100 });
+  await teacher.getByRole("link", { name: "Preview as student" }).click();
+  await teacher
+    .getByText("Preview only. Answers are not saved or submitted.")
+    .waitFor();
+  assert.equal(await teacher.locator("#exam-form").count(), 0);
+  assert.equal(
+    await teacher.getByText("✓ Correct", { exact: true }).count(),
+    0,
+  );
+  const previewSaves = [];
+  const trackPreviewSave = (request) => {
+    if (request.method() === "POST" && request.url().includes("/attempts/")) {
+      previewSaves.push(request.url());
+    }
+  };
+  teacher.on("request", trackPreviewSave);
+  await teacher.getByRole("button", { name: "Find unanswered" }).click();
+  assert(
+    await teacher
+      .locator(".answer-field")
+      .first()
+      .evaluate((field) => field === document.activeElement),
+  );
+  await teacher.getByLabel("Logarithmic", { exact: true }).check();
+  await teacher.getByRole("button", { name: "Clear selection" }).click();
+  assert.equal(
+    await teacher.getByLabel("Logarithmic", { exact: true }).isChecked(),
+    false,
+  );
+  await teacher.getByLabel("Logarithmic", { exact: true }).check();
+  await teacher
+    .getByLabel("Your written response")
+    .fill("A temporary preview response.");
+  await teacher
+    .getByRole("status")
+    .filter({ hasText: "2 of 2 answered" })
+    .waitFor();
+  assert(
+    await teacher.getByRole("button", { name: "Find unanswered" }).isDisabled(),
+  );
+  await teacher.screenshot({
+    path: path.join(root, "test-results/teacher-preview.png"),
+    fullPage: true,
+  });
+  await teacher.setViewportSize({ width: 390, height: 844 });
+  assert.equal(
+    await teacher.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+    false,
+    "Mobile preview overflows",
+  );
+  await teacher.screenshot({
+    path: path.join(root, "test-results/teacher-preview-mobile.png"),
+    fullPage: true,
+  });
+  await teacher.getByRole("button", { name: "Reset preview" }).click();
+  await teacher
+    .getByRole("status")
+    .filter({ hasText: "0 of 2 answered" })
+    .waitFor();
+  assert.equal(
+    await teacher.getByLabel("Your written response").inputValue(),
+    "",
+  );
+  assert.equal(
+    await teacher.getByLabel("Logarithmic", { exact: true }).isChecked(),
+    false,
+  );
+  await teacher
+    .getByLabel("Your written response")
+    .fill("Reload should discard this.");
+  await teacher.reload();
+  await teacher
+    .getByRole("status")
+    .filter({ hasText: "0 of 2 answered" })
+    .waitFor();
+  assert.equal(
+    await teacher.getByLabel("Your written response").inputValue(),
+    "",
+  );
+  assert.equal(previewSaves.length, 0, "Preview wrote to an attempt endpoint");
+  teacher.off("request", trackPreviewSave);
+  await teacher.setViewportSize({ width: 1440, height: 1100 });
+  await teacher
+    .getByRole("link", { name: "Back to exam builder", exact: false })
+    .click();
   await teacher.getByRole("button", { name: "Publish exam" }).click();
   await teacher.getByRole("link", { name: "Gradebook" }).waitFor();
   await teacher.getByRole("button", { name: "Duplicate exam" }).click();
@@ -406,7 +493,7 @@ async function run() {
   await student.getByRole("heading", { name: "All handed in" }).waitFor();
   assert.equal(errors.length, 0, `Browser errors: ${errors.join("; ")}`);
   console.log(
-    "PASS: teacher controls invites, reorders and copies exams, filters the complete roster, and exports CSV; student navigates and marks questions, autosaves across network retry and reload, rejects stale edits, and submits; teacher grades with stale-review protection and releases the correct results. An 80 KB UTF-8 answer payload saves, reloads, and submits. Mobile dashboard, builder, and exam overflow and uncaught browser errors checked.",
+    "PASS: teacher controls invites, reorders, previews without saving, and copies exams, filters the complete roster, and exports CSV; student navigates and marks questions, autosaves across network retry and reload, rejects stale edits, and submits; teacher grades with stale-review protection and releases the correct results. An 80 KB UTF-8 answer payload saves, reloads, and submits. Mobile dashboard, builder, preview, and exam overflow and uncaught browser errors checked.",
   );
 }
 run()

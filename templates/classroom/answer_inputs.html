@@ -1,0 +1,14 @@
+{% if question.kind == 'choice' %}
+  <div class="answer-options" role="group" aria-labelledby="prompt-{{ question.pk }}">
+    {% for option in question.options %}
+      <label class="answer-option">
+        <input type="radio" name="question_{{ question.pk }}" value="{{ forloop.counter0 }}" {% if answer and answer.selected_option == forloop.counter0 %}checked{% endif %}>
+        <span>{{ option }}</span>
+      </label>
+    {% endfor %}
+  </div>
+  <button type="button" class="text-button clear-answer" data-clear="{{ question.pk }}">Clear selection</button>
+{% else %}
+  <label class="sr-only" for="answer-{{ question.pk }}">Your written response</label>
+  <textarea id="answer-{{ question.pk }}" name="question_{{ question.pk }}" rows="5" maxlength="10000" placeholder="Make room for your thinking...">{% if answer %}{{ answer.text }}{% endif %}</textarea>
+{% endif %}
