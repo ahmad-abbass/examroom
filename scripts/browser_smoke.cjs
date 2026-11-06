@@ -450,6 +450,100 @@ async function run() {
     path: path.join(root, "test-results/student-results.png"),
     fullPage: true,
   });
+  const sortedExamID = Number(examPath.split("/").filter(Boolean).at(-1));
+  assert(Number.isSafeInteger(sortedExamID));
+  manage([
+    "shell",
+    "-c",
+    [
+      "from datetime import timedelta",
+      "from django.contrib.auth.models import User",
+      "from django.utils import timezone",
+      "from classroom.models import Attempt, Enrollment, Exam",
+      "from classroom.services import grade_submission, save_answers, start_attempt",
+      `exam = Exam.objects.get(pk=${sortedExamID})`,
+      "choice = exam.questions.get(kind='choice')",
+      "written = exam.questions.get(kind='text')",
+      "now = timezone.now()",
+      "for username, name, points in [('ranked-low', 'Ben', 0), ('ranked-high', 'Zoe', 20), ('ranked-missing', 'Amy', None)]:",
+      "    student = User.objects.create_user(username=username, first_name=name)",
+      "    Enrollment.objects.create(course=exam.course, student=student)",
+      "    if points is not None:",
+      "        attempt = start_attempt(exam.pk, student)",
+      "        save_answers(attempt.pk, student, {str(choice.pk): choice.correct_option, str(written.pk): 'Sorting fixture'}, 0, submit=True)",
+      "        answer = attempt.answers.get(question=written)",
+      "        grade_submission(attempt.pk, exam.course.teacher, {answer.pk: (points, '')}, 0)",
+      "        Attempt.objects.filter(pk=attempt.pk).update(started_at=now - timedelta(minutes=2), submitted_at=now - timedelta(seconds=30 - points))",
+    ].join("\n"),
+  ]);
+  await teacher.goto(base + examPath + "gradebook/");
+  await teacher.getByLabel("Find a student").fill("ranked-");
+  await teacher
+    .getByLabel("Sort by", { exact: true })
+    .selectOption("score_desc");
+  await teacher.getByRole("button", { name: "Apply filters" }).click();
+  const rosterNames = teacher.locator("tbody tr td:first-child small");
+  assert.deepEqual(await rosterNames.allTextContents(), [
+    "ranked-high",
+    "ranked-low",
+    "ranked-missing",
+  ]);
+  assert.equal(
+    await teacher.getByLabel("Sort by", { exact: true }).inputValue(),
+    "score_desc",
+  );
+  const sortedExport = await teacherContext.request.get(
+    new URL(
+      await teacher
+        .getByRole("link", { name: "Export CSV", exact: false })
+        .getAttribute("href"),
+      base,
+    ).href,
+  );
+  assert.equal(sortedExport.status(), 200);
+  assert.deepEqual(
+    (await sortedExport.text())
+      .trim()
+      .split(/\r?\n/)
+      .slice(1)
+      .map((line) => line.split(",")[1]),
+    ["ranked-high", "ranked-low", "ranked-missing"],
+  );
+  await teacher
+    .getByLabel("Sort by", { exact: true })
+    .selectOption("score_asc");
+  await teacher.getByRole("button", { name: "Apply filters" }).click();
+  assert.deepEqual(await rosterNames.allTextContents(), [
+    "ranked-low",
+    "ranked-high",
+    "ranked-missing",
+  ]);
+  await teacher
+    .getByLabel("Sort by", { exact: true })
+    .selectOption("submitted_desc");
+  await teacher.getByRole("button", { name: "Apply filters" }).click();
+  assert.deepEqual(await rosterNames.allTextContents(), [
+    "ranked-high",
+    "ranked-low",
+    "ranked-missing",
+  ]);
+  await teacher.screenshot({
+    path: path.join(root, "test-results/sorted-gradebook.png"),
+    fullPage: true,
+  });
+  await teacher.setViewportSize({ width: 390, height: 844 });
+  assert.equal(
+    await teacher.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+    false,
+    "Mobile gradebook overflows",
+  );
+  await teacher.screenshot({
+    path: path.join(root, "test-results/sorted-gradebook-mobile.png"),
+    fullPage: true,
+  });
+  await teacher.setViewportSize({ width: 1440, height: 1100 });
   const largeExam = JSON.parse(
     manage([
       "shell",
@@ -493,7 +587,7 @@ async function run() {
   await student.getByRole("heading", { name: "All handed in" }).waitFor();
   assert.equal(errors.length, 0, `Browser errors: ${errors.join("; ")}`);
   console.log(
-    "PASS: teacher controls invites, reorders, previews without saving, and copies exams, filters the complete roster, and exports CSV; student navigates and marks questions, autosaves across network retry and reload, rejects stale edits, and submits; teacher grades with stale-review protection and releases the correct results. An 80 KB UTF-8 answer payload saves, reloads, and submits. Mobile dashboard, builder, preview, and exam overflow and uncaught browser errors checked.",
+    "PASS: teacher controls invites, reorders, previews without saving, and copies exams, filters and sorts the complete roster, and exports matching CSV; student navigates and marks questions, autosaves across network retry and reload, rejects stale edits, and submits; teacher grades with stale-review protection and releases the correct results. An 80 KB UTF-8 answer payload saves, reloads, and submits. Mobile dashboard, builder, preview, gradebook, and exam overflow and uncaught browser errors checked.",
   );
 }
 run()
