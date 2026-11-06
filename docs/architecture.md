@@ -71,7 +71,7 @@ An exam's owner can preview draft or published questions with the same answer co
 
 Exam duplication copies question rows into a new draft and resets the schedule, publication and release state. It never copies attempts or answers. Draft question moves lock the parent exam, swap adjacent rows, and normalize positions. Invitation changes and student joins lock the course; pausing or rotating a code preserves existing enrollments.
 
-The gradebook combines enrolled students with existing attempts so missing submissions and historical records remain visible. Search/status filters are applied to that common row set. Pagination affects the HTML view only; CSV exports contain every matching row, and summary statistics use the full class. Answers are prefetched so graded-state checks do not add one query per student.
+The gradebook combines enrolled students with existing attempts so missing submissions and historical records remain visible. Search/status filters and name, score, or submission-date ordering are applied before pagination. Missing scores and submission dates sort last; ties use student name and ID. CSV exports use the same filters and order across every matching row, and summary statistics use the full class. Answers are prefetched so graded-state checks and score sorting do not add one query per student.
 
 ## Testing map
 

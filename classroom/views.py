@@ -21,7 +21,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST, require_safe
 
 from .forms import CourseForm, ExamForm, QuestionForm, RegisterForm
-from .gradebooks import STATUSES, filter_rows, gradebook_rows
+from .gradebooks import SORTS, STATUSES, filter_rows, gradebook_rows, sort_rows
 from .models import Attempt, Course, Enrollment, Exam, LoginThrottle, Profile, Question
 from .services import (
     RevisionConflict,
@@ -457,8 +457,8 @@ def gradebook(request, pk):
     finish_overdue(exam)
     rows = gradebook_rows(exam)
     complete = [row.attempt for row in rows if row.status == "graded"]
-    query, status = gradebook_filters(request)
-    filtered = filter_rows(rows, query, status)
+    query, status, order = gradebook_filters(request)
+    filtered = sort_rows(filter_rows(rows, query, status), order)
     page = Paginator(filtered, 25).get_page(request.GET.get("page"))
     stats = [
         ("Submissions", sum(bool(row.attempt and row.attempt.submitted_at) for row in rows)),
@@ -479,9 +479,11 @@ def gradebook(request, pk):
             "query": query,
             "status": status,
             "status_choices": STATUSES.items(),
+            "sort": order,
+            "sort_choices": SORTS.items(),
             "total_students": len(rows),
             "filtered_count": len(filtered),
-            "filter_query": urlencode({"q": query, "status": status}),
+            "filter_query": urlencode({"q": query, "status": status, "sort": order}),
         },
     )
 
@@ -489,7 +491,8 @@ def gradebook(request, pk):
 def gradebook_filters(request):
     query = request.GET.get("q", "").strip()[:150]
     status = request.GET.get("status", "")
-    return query, status if status in STATUSES else ""
+    order = request.GET.get("sort", "name")
+    return query, status if status in STATUSES else "", order if order in SORTS else "name"
 
 
 @teacher_only
@@ -572,7 +575,8 @@ def export_grades(request, pk):
     response["Content-Disposition"] = f'attachment; filename="exam-{exam.pk}-grades.csv"'
     writer = csv.writer(response)
     writer.writerow(["Student", "Username", "Status", "Score", "Maximum", "Percentage"])
-    for entry in filter_rows(gradebook_rows(exam), *gradebook_filters(request)):
+    query, status, order = gradebook_filters(request)
+    for entry in sort_rows(filter_rows(gradebook_rows(exam), query, status), order):
         a = entry.attempt
         row = [
             entry.student.get_full_name() or entry.student.username,

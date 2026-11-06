@@ -11,6 +11,13 @@ STATUSES = {
     "graded": "Graded",
 }
 
+SORTS = {
+    "name": "Student name (A–Z)",
+    "score_desc": "Score (highest first)",
+    "score_asc": "Score (lowest first)",
+    "submitted_desc": "Submitted (newest first)",
+}
+
 
 @dataclass(frozen=True)
 class GradebookRow:
@@ -42,10 +49,34 @@ def gradebook_rows(exam):
                 "graded" if attempt.graded else ("needs_review" if attempt.submitted_at else "in_progress")
             )
         rows.append(GradebookRow(student, attempt, status))
-    return sorted(
-        rows,
-        key=lambda row: ((row.student.get_full_name() or row.student.username).casefold(), row.student.pk),
-    )
+    return sorted(rows, key=_student_key)
+
+
+def _student_key(row):
+    return (row.student.get_full_name() or row.student.username).casefold(), row.student.pk
+
+
+def sort_rows(rows, order):
+    if order in {"score_desc", "score_asc"}:
+        direction = -1 if order == "score_desc" else 1
+        return sorted(
+            rows,
+            key=lambda row: (
+                row.status != "graded",
+                direction * row.attempt.score if row.status == "graded" else 0,
+                _student_key(row),
+            ),
+        )
+    if order == "submitted_desc":
+        return sorted(
+            rows,
+            key=lambda row: (
+                not (row.attempt and row.attempt.submitted_at),
+                -row.attempt.submitted_at.timestamp() if row.attempt and row.attempt.submitted_at else 0,
+                _student_key(row),
+            ),
+        )
+    return sorted(rows, key=_student_key)
 
 
 def filter_rows(rows, query, status):

@@ -1,11 +1,13 @@
 import csv
 import io
+from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.utils import timezone
 
-from classroom.gradebooks import gradebook_rows
-from classroom.models import Enrollment, Exam
+from classroom.gradebooks import SORTS, gradebook_rows, sort_rows
+from classroom.models import Attempt, Enrollment, Exam
 from classroom.services import publish_exam, save_answers, start_attempt
 
 from .helpers import ClassroomTestCase
@@ -97,8 +99,83 @@ class GradebookTests(ClassroomTestCase):
             for row in rows:
                 if row.status == "graded":
                     self.assertEqual(row.attempt.percentage, 100)
+            for order in SORTS:
+                self.assertEqual(len(sort_rows(rows, order)), len(rows))
 
     def test_historical_attempt_remains_visible_after_external_roster_removal(self):
         Enrollment.objects.filter(course=self.course, student=self.graded_student).delete()
         rows = gradebook_rows(self.exam)
         self.assertIn(self.graded_student.pk, [row.student.pk for row in rows])
+
+    def test_score_sorting_keeps_zero_scores_and_places_ungraded_rows_last(self):
+        zero = User.objects.create_user("score-zero", first_name="Zero")
+        tied = User.objects.create_user("score-tied", first_name="Asha")
+        for student, score in [(zero, 0), (tied, 20)]:
+            Enrollment.objects.create(course=self.course, student=student)
+            attempt = self.submit(student)
+            attempt.answers.filter(question=self.written).update(awarded_points=score)
+            if student == zero:
+                attempt.answers.filter(question=self.choice).update(awarded_points=0)
+        ungraded = [self.student.pk, self.other_student.pk, self.active.pk]
+        url = reverse("gradebook", args=[self.exam.pk])
+        for order, expected in [
+            ("score_desc", [tied.pk, self.graded_student.pk, zero.pk] + ungraded),
+            ("score_asc", [zero.pk, tied.pk, self.graded_student.pk] + ungraded),
+        ]:
+            response = self.client.get(url, {"sort": order})
+            self.assertEqual([row.student.pk for row in response.context["rows"]], expected)
+            self.assertContains(response, f'value="{order}" selected')
+            self.assertEqual(dict(response.context["stats"])["Class average"], "67%")
+
+    def test_submission_sorting_includes_pending_reviews_and_puts_missing_dates_last(self):
+        now = timezone.now()
+        Attempt.objects.filter(pk=self.pending.pk).update(submitted_at=now - timedelta(hours=1))
+        Attempt.objects.filter(pk=self.graded_attempt.pk).update(submitted_at=now - timedelta(days=1))
+        response = self.client.get(reverse("gradebook", args=[self.exam.pk]), {"sort": "submitted_desc"})
+        self.assertEqual(
+            [row.student.pk for row in response.context["rows"]],
+            [self.student.pk, self.graded_student.pk, self.other_student.pk, self.active.pk],
+        )
+
+    def test_sorting_precedes_pagination_and_csv_retains_the_same_filters_and_order(self):
+        students = []
+        for index in range(27):
+            student = User.objects.create_user(f"ranked-{index:02d}", first_name=f"Student {index:02d}")
+            Enrollment.objects.create(course=self.course, student=student)
+            attempt = self.submit(student)
+            points = index % 21
+            attempt.answers.filter(question=self.written).update(awarded_points=points)
+            students.append((student, 10 + points))
+        expected = sorted(students, key=lambda item: (-item[1], item[0].first_name.casefold(), item[0].pk))
+        filters = {"q": "ranked-", "status": "graded", "sort": "score_desc"}
+        url = reverse("gradebook", args=[self.exam.pk])
+        first = self.client.get(url, filters)
+        second = self.client.get(url, {**filters, "page": "2"})
+        self.assertEqual(len(first.context["rows"]), 25)
+        self.assertEqual(len(second.context["rows"]), 2)
+        actual = [row.student.pk for row in first.context["rows"]] + [
+            row.student.pk for row in second.context["rows"]
+        ]
+        self.assertEqual(actual, [student.pk for student, _ in expected])
+        self.assertContains(first, "sort=score_desc&amp;page=2")
+        response = self.client.get(reverse("export_grades", args=[self.exam.pk]), {**filters, "page": "2"})
+        rows = list(csv.reader(io.StringIO(response.content.decode())))
+        self.assertEqual([row[1] for row in rows[1:]], [student.username for student, _ in expected])
+        self.assertEqual([int(row[3]) for row in rows[1:]], [score for _, score in expected])
+
+    def test_unknown_sort_uses_the_default_name_order(self):
+        url = reverse("gradebook", args=[self.exam.pk])
+        for order in ["", "forged", "-score", "score_desc extra"]:
+            response = self.client.get(url, {"sort": order})
+            self.assertEqual(response.context["sort"], "name")
+            self.assertEqual(
+                [row.student.pk for row in response.context["rows"]],
+                [self.student.pk, self.other_student.pk, self.active.pk, self.graded_student.pk],
+            )
+
+    def test_sorted_gradebook_and_csv_keep_teacher_ownership_checks(self):
+        for user, status in [(self.student, 403), (self.other_teacher, 404)]:
+            self.client.force_login(user)
+            for name in ["gradebook", "export_grades"]:
+                response = self.client.get(reverse(name, args=[self.exam.pk]), {"sort": "score_desc"})
+                self.assertEqual(response.status_code, status)
