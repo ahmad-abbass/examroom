@@ -33,3 +33,10 @@ The local browser journey used Playwright 1.62.1 with an explicit Chromium 141 e
 `check --deploy` reports Django's W021 because HSTS preload enrollment is intentionally not enabled. The warning is not silenced. HTTPS redirect, secure cookies, HSTS, host checks, and a non-development secret are enabled in the production configuration.
 
 The browser script creates an isolated database and removes it afterwards. Its screenshots are local test output rather than evidence of a publicly deployed service. The normal demo database and generated test outputs are excluded from version control.
+
+## Question bank · 8 November 2026
+
+- All 106 backend tests passed locally on Python 3.12, including 16 question-bank tests for ownership, CSRF, input validation, search/pagination, copy limits, and independent grading after bank edits/deletion.
+- The browser journey saves an exam question to the bank, creates a written bank question, searches by topic/type, copies both into a draft, and edits/deletes the saved entry while verifying the exam's original key remains intact. Student access is rejected, and the bank fits a 390px viewport.
+- An isolated SQLite upgrade from migration `0004_grading_revisions` to `0005_question_bank` preserved every existing profile, class, enrollment, exam, question, attempt, and answer. The new bank starts empty.
+- The migration adds only the bank table; no existing exam-question fields are removed or rewritten. The README and application dependencies are unchanged.

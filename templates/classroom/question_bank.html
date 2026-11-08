@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Question bank{% endblock %}
+{% block breadcrumb %}Question bank{% endblock %}
+{% block content %}
+  {% if exam %}
+    <a class="back-link" href="{% url 'exam_edit' exam.pk %}">← {{ exam.title }}</a>
+  {% endif %}
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">YOUR TEACHING COLLECTION</p>
+      <h1>Question bank<span class="green">.</span></h1>
+      <p class="subtle">Good questions deserve another class.</p>
+    </div>
+    {% if not exam %}
+      <a class="button" href="{% url 'bank_question_create' %}">+ Create question</a>
+    {% else %}
+      <a class="button secondary" href="{% url 'exam_edit' exam.pk %}">Back to exam</a>
+    {% endif %}
+  </div>
+  <div class="notice">
+    {% if exam %}
+      Choose questions for <strong>{{ exam.title }}</strong>. Each question is copied into this draft, ready to edit independently.
+    {% else %}
+      Only you can access this bank. Editing or deleting a saved question never changes questions already copied into exams.
+    {% endif %}
+  </div>
+  {% if exam_full %}
+    <div class="notice">This exam already has 50 questions. Remove a question from the draft before adding another.</div>
+  {% endif %}
+  <form method="get" class="gradebook-filters panel">
+    {% if exam %}<input type="hidden" name="exam" value="{{ exam.pk }}">{% endif %}
+    {% for field in form %}
+      <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}{{ field.errors }}
+      </div>
+    {% endfor %}
+    <button class="button secondary">Search bank</button>
+    <a class="text-link" href="{{ clear_url }}">Clear filters</a>
+  </form>
+  <p class="subtle small">{{ questions.paginator.count }} question{{ questions.paginator.count|pluralize }} found</p>
+  <div class="question-stack">
+    {% for question in questions %}
+      <article class="panel bank-question">
+        <div class="question-top">
+          <span class="badge muted">{{ question.get_kind_display }}</span>
+          {% if question.topic %}<span class="badge sand">{{ question.topic }}</span>{% endif %}
+          <span class="points">{{ question.points }} points</span>
+        </div>
+        <h2>{{ question.title }}</h2>
+        <p class="preserve subtle">{{ question.prompt|truncatechars:200 }}</p>
+        <details class="bank-preview">
+          <summary>Preview question and answer key</summary>
+          {% include 'classroom/teacher_question_content.html' %}
+        </details>
+        <div class="question-actions">
+          {% if exam %}
+            <form method="post" action="{% url 'bank_question_add' exam.pk question.pk %}">
+              {% csrf_token %}
+              <button class="button" {% if exam_full %}disabled{% endif %}>Add to exam</button>
+            </form>
+          {% else %}
+            <a class="text-link" href="{% url 'bank_question_edit' question.pk %}">Edit question ↗</a>
+            <form method="post" action="{% url 'bank_question_delete' question.pk %}" data-confirm="Delete this saved question? Existing exam copies will stay unchanged.">
+              {% csrf_token %}
+              <button class="text-button danger">Delete from bank</button>
+            </form>
+          {% endif %}
+        </div>
+      </article>
+    {% empty %}
+      <div class="panel empty">
+        <span>?</span>
+        <h2>No questions in this view.</h2>
+        <p>Try another search, or save questions from an exam to build your collection.</p>
+        {% if exam %}
+          <a class="button secondary" href="{% url 'question_create' exam.pk %}">Write a new exam question</a>
+        {% else %}
+          <a class="button" href="{% url 'bank_question_create' %}">Create your first question ↗</a>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% if questions.has_other_pages %}
+    <nav class="actions pagination" aria-label="Question bank pages">
+      {% if questions.has_previous %}<a class="button secondary" href="?{{ filter_query }}&amp;page={{ questions.previous_page_number }}">← Previous</a>{% endif %}
+      <span>Page {{ questions.number }} of {{ questions.paginator.num_pages }}</span>
+      {% if questions.has_next %}<a class="button secondary" href="?{{ filter_query }}&amp;page={{ questions.next_page_number }}">Next →</a>{% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

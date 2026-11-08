@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
-from .models import Course, Exam, Question
+from .models import BankQuestion, Course, Exam, Question
 
 
 class RegisterForm(UserCreationForm):
@@ -86,3 +86,25 @@ class QuestionForm(forms.ModelForm):
         if commit:
             obj.save()
         return obj
+
+
+class BankQuestionForm(QuestionForm):
+    class Meta(QuestionForm.Meta):
+        model = BankQuestion
+        fields = ["title", "topic", *QuestionForm.Meta.fields]
+        help_texts = {
+            **QuestionForm.Meta.help_texts,
+            "topic": "Optional, for example Graphs or Algebra.",
+        }
+
+
+class BankSearchForm(forms.Form):
+    q = forms.CharField(
+        label="Find a question",
+        max_length=120,
+        required=False,
+        widget=forms.TextInput(attrs={"type": "search", "placeholder": "Title, topic or question text"}),
+    )
+    kind = forms.ChoiceField(
+        label="Question type", choices=[("", "All types"), *Question.Kind.choices], required=False
+    )

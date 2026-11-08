@@ -990,6 +990,25 @@ td small {
   padding-top: 16px;
   margin-top: 20px;
 }
+.bank-question {
+  padding: clamp(20px, 3vw, 28px);
+  overflow-wrap: anywhere;
+}
+.bank-question h2 {
+  margin: 20px 0 12px;
+  font-size: 22px;
+}
+.bank-preview {
+  margin-top: 18px;
+}
+.bank-preview summary {
+  cursor: pointer;
+  color: var(--green);
+  font-weight: 650;
+}
+.bank-preview[open] summary {
+  margin-bottom: 20px;
+}
 .text-button {
   background: none;
   padding: 0;

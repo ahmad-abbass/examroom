@@ -261,9 +261,110 @@ async function run() {
   assert(
     await teacher.getByRole("button", { name: "Publish exam" }).isVisible(),
   );
+  const draftBuilder = teacher.url();
+  await teacher
+    .getByRole("button", { name: "Save to bank", exact: true })
+    .first()
+    .click();
+  await teacher
+    .getByLabel("Title", { exact: false })
+    .fill("Binary search / reusable");
+  await teacher.getByLabel("Topic", { exact: false }).fill("Searching");
+  await teacher
+    .getByRole("button", { name: "Save to bank", exact: false })
+    .click();
+  await teacher
+    .getByRole("link", { name: "Create question", exact: false })
+    .click();
+  await teacher.getByLabel("Title", { exact: false }).fill("DFS reasoning");
+  await teacher.getByLabel("Topic", { exact: false }).fill("Graphs");
+  await teacher.locator("#id_kind").selectOption("text");
+  await teacher
+    .getByLabel("Prompt", { exact: false })
+    .fill("Explain why DFS discovery and finish intervals are nested.");
+  await teacher.getByLabel("Points", { exact: false }).fill("15");
+  await teacher
+    .getByRole("button", { name: "Save to bank", exact: false })
+    .click();
+  await teacher.getByLabel("Find a question").fill("Searching");
+  await teacher.getByLabel("Question type").selectOption("choice");
+  await teacher.getByRole("button", { name: "Search bank" }).click();
+  assert.equal(await teacher.locator(".bank-question").count(), 1);
+  await teacher.getByRole("link", { name: "Clear filters" }).click();
+  assert.equal(await teacher.locator(".bank-question").count(), 2);
+  const reusable = teacher
+    .locator(".bank-question")
+    .filter({ hasText: "Binary search / reusable" });
+  await reusable.locator("summary").click();
+  assert.match(
+    await reusable.locator(".preview-option.correct").innerText(),
+    /Logarithmic/,
+  );
+  await teacher.screenshot({
+    path: path.join(root, "test-results/question-bank.png"),
+    fullPage: true,
+  });
+  await teacher.setViewportSize({ width: 390, height: 844 });
+  assert.equal(
+    await teacher.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+    false,
+    "Mobile question bank overflows",
+  );
+  await teacher.screenshot({
+    path: path.join(root, "test-results/question-bank-mobile.png"),
+    fullPage: true,
+  });
+  await teacher.setViewportSize({ width: 1440, height: 1100 });
+  for (const title of ["Binary search / reusable", "DFS reasoning"]) {
+    await teacher.goto(draftBuilder);
+    await teacher.getByRole("link", { name: "Browse question bank" }).click();
+    await teacher
+      .locator(".bank-question")
+      .filter({ hasText: title })
+      .getByRole("button", { name: "Add to exam" })
+      .click();
+  }
+  assert.equal(await teacher.locator(".question-preview").count(), 4);
+  await teacher
+    .getByRole("link", { name: "Question bank", exact: true })
+    .click();
+  await reusable
+    .getByRole("link", { name: "Edit question", exact: false })
+    .click();
+  await teacher
+    .getByLabel("Prompt", { exact: false })
+    .fill("A changed bank question");
+  await teacher.locator("#id_correct_option").selectOption("0");
+  await teacher
+    .getByRole("button", { name: "Save to bank", exact: false })
+    .click();
+  await reusable.getByRole("button", { name: "Delete from bank" }).click();
+  assert.equal(await teacher.locator(".bank-question").count(), 1);
+  await teacher.goto(draftBuilder);
+  const imported = teacher.locator(".question-preview").nth(2);
+  assert.match(
+    await imported.locator("h3").innerText(),
+    /binary-search complexity/,
+  );
+  assert.match(
+    await imported.locator(".preview-option.correct").innerText(),
+    /Logarithmic/,
+  );
   await teacher.goto(base + examPath + "gradebook/");
 
   await signIn(student, "demo.ahmad");
+  assert.equal(
+    await student
+      .getByRole("link", { name: "Question bank", exact: true })
+      .count(),
+    0,
+  );
+  assert.equal(
+    (await studentContext.request.get(base + "/question-bank/")).status(),
+    403,
+  );
   await student.setViewportSize({ width: 390, height: 844 });
   assert.equal(
     await student.evaluate(
@@ -587,7 +688,7 @@ async function run() {
   await student.getByRole("heading", { name: "All handed in" }).waitFor();
   assert.equal(errors.length, 0, `Browser errors: ${errors.join("; ")}`);
   console.log(
-    "PASS: teacher controls invites, reorders, previews without saving, and copies exams, filters and sorts the complete roster, and exports matching CSV; student navigates and marks questions, autosaves across network retry and reload, rejects stale edits, and submits; teacher grades with stale-review protection and releases the correct results. An 80 KB UTF-8 answer payload saves, reloads, and submits. Mobile dashboard, builder, preview, gradebook, and exam overflow and uncaught browser errors checked.",
+    "PASS: teacher controls invites, reorders, previews without saving, copies exams, saves and creates bank questions, searches and reuses them in a draft, and edits/deletes bank entries without changing exam copies; bank access rejects students. Teacher filters and sorts the roster, exports CSV, grades with stale-review protection, and releases results. Student navigation, review marks, autosave, network retry, reload, stale edits, submission, and an 80 KB UTF-8 payload pass. Mobile dashboard, builder, bank, preview, gradebook, and exam overflow and browser errors checked.",
   );
 }
 run()

@@ -1,9 +1,23 @@
 from django.urls import path
 
-from . import views
+from . import bank_views, views
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("question-bank/", bank_views.question_bank, name="question_bank"),
+    path("question-bank/new/", bank_views.bank_question_edit, name="bank_question_create"),
+    path("question-bank/<int:pk>/edit/", bank_views.bank_question_edit, name="bank_question_edit"),
+    path("question-bank/<int:pk>/delete/", bank_views.bank_question_delete, name="bank_question_delete"),
+    path(
+        "exams/<int:exam_id>/question-bank/<int:pk>/add/",
+        bank_views.bank_question_add,
+        name="bank_question_add",
+    ),
+    path(
+        "exams/<int:exam_id>/questions/<int:pk>/save-to-bank/",
+        bank_views.question_to_bank,
+        name="question_to_bank",
+    ),
     path("classes/new/", views.course_create, name="course_create"),
     path("classes/join/", views.join_course, name="course_join"),
     path("classes/<int:pk>/", views.course_detail, name="course"),

@@ -29,6 +29,11 @@
             <a class="nav-item {% if request.path == '/' %}active{% endif %}" href="{% url 'dashboard' %}">
               <span aria-hidden="true">▦</span> Overview <span class="nav-arrow" aria-hidden="true">↗</span>
             </a>
+            {% if is_teacher %}
+              <a class="nav-item {% if '/question-bank/' in request.path %}active{% endif %}" href="{% url 'question_bank' %}">
+                <span aria-hidden="true">?</span> Question bank
+              </a>
+            {% endif %}
             <p class="nav-caption">YOUR CLASSES</p>
             {% for class in nav_courses %}
               <a class="nav-item class-link" href="{% url 'course' class.pk %}">

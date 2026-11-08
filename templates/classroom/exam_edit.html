@@ -41,7 +41,10 @@
   <div class="section-heading">
     <h2>The questions</h2>
     {% if not exam.published %}
-      <a class="button secondary" href="{% url 'question_create' exam.pk %}">+ Add question</a>
+      <div class="actions">
+        <a class="button secondary" href="{% url 'question_bank' %}?exam={{ exam.pk }}">Browse question bank</a>
+        <a class="button secondary" href="{% url 'question_create' exam.pk %}">+ Add question</a>
+      </div>
     {% endif %}
   </div>
   <div class="question-stack">
@@ -52,26 +55,13 @@
           <span class="badge muted">{{ question.get_kind_display }}</span>
           <span class="points">{{ question.points }} points</span>
         </div>
-        <h3 class="preserve">{{ question.prompt }}</h3>
-        {% if question.kind == 'choice' %}
-          <div class="preview-options">
-            {% for option in question.options %}
-              <div class="preview-option {% if forloop.counter0 == question.correct_option %}correct{% endif %}">
-                <span>{{ forloop.counter }}</span>{{ option }}{% if forloop.counter0 == question.correct_option %}
-                  <strong>✓ Correct</strong>
-                {% endif %}
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="written-placeholder">Students will write their response here. You'll review it after submission.</div>
-        {% endif %}
-        {% if question.explanation %}
-          <p class="help">
-            <strong>After-results explanation:</strong> {{ question.explanation }}</p>
-        {% endif %}
-        {% if not exam.published %}
-          <div class="question-actions">
+        {% include 'classroom/teacher_question_content.html' %}
+        <div class="question-actions">
+          <form method="post" action="{% url 'question_to_bank' exam.pk question.pk %}">
+            {% csrf_token %}
+            <button class="text-button">Save to bank</button>
+          </form>
+          {% if not exam.published %}
             <a class="text-link" href="{% url 'question_edit' exam.pk question.pk %}">Edit question ↗</a>
             <form method="post" action="{% url 'question_move' exam.pk question.pk %}" class="actions">
               {% csrf_token %}
@@ -82,8 +72,8 @@
               {% csrf_token %}
               <button class="text-button danger">Remove</button>
             </form>
-          </div>
-        {% endif %}
+          {% endif %}
+        </div>
       </article>
     {% empty %}
       <div class="panel empty">
