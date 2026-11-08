@@ -4,9 +4,10 @@ from datetime import timedelta
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from .models import Answer, Attempt, Course, Enrollment, Exam, Question, join_code
+from .models import Answer, Attempt, BankQuestion, Course, Enrollment, Exam, Question, join_code
 
 
 class RevisionConflict(Exception):
@@ -72,17 +73,35 @@ def duplicate_exam(exam_id, teacher):
             Question(
                 exam=draft,
                 position=position,
-                kind=question.kind,
-                prompt=question.prompt,
-                points=question.points,
-                options=list(question.options),
-                correct_option=question.correct_option,
-                explanation=question.explanation,
+                **question.content_values(),
             )
             for position, question in enumerate(source.questions.all())
         ]
     )
     return draft
+
+
+@transaction.atomic
+def save_question_to_bank(exam_id, question_id, teacher):
+    exam = get_object_or_404(Exam.objects.select_for_update(), pk=exam_id, course__teacher=teacher)
+    question = get_object_or_404(Question, pk=question_id, exam=exam)
+    return BankQuestion.objects.create(
+        teacher=teacher,
+        title=" ".join(question.prompt.split())[:160],
+        **question.content_values(),
+    )
+
+
+@transaction.atomic
+def add_bank_question(exam_id, bank_id, teacher):
+    exam = get_object_or_404(Exam.objects.select_for_update(), pk=exam_id, course__teacher=teacher)
+    question = get_object_or_404(BankQuestion.objects.select_for_update(), pk=bank_id, teacher=teacher)
+    if exam.published or exam.attempts.exists():
+        raise PermissionDenied("Questions can only be added to an unused draft exam.")
+    count = exam.questions.count()
+    if count >= 50:
+        raise ValidationError("An exam can contain at most 50 questions.")
+    return Question.objects.create(exam=exam, position=count, **question.content_values())
 
 
 @transaction.atomic

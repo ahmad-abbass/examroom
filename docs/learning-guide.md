@@ -10,6 +10,7 @@ Treat the repository as a starting point for understanding and practical work. B
 4. `classroom/forms.py`: inspect validation for choice questions, date windows and points.
 5. `static/attempt.js`: explain dirty state, a request in flight, a pending submit, and the 409 conflict path.
 6. `classroom/tests/test_workflows.py`: pick five tests, predict their results, then introduce a bug that makes each fail.
+7. `classroom/bank_views.py` and `QuestionContent`: follow a reusable question into a draft. Explain how shared fields and form validation avoid duplication while separate database rows keep exam content independent.
 
 ## Hands-on exercises
 
@@ -35,6 +36,7 @@ Open the same attempt in two tabs. Save different answers in each and explain th
 - Why does the autosave endpoint return 409 instead of overwriting an answer from another tab?
 - Why do teacher reviews need a different revision from student autosaves?
 - Which state must reset when an exam is copied, and which question values can be reused?
+- Why does copying a bank question protect existing exam answers when the saved question is edited or deleted?
 - Why should the gradebook show a student who has never started an attempt?
 - How can 40,000 characters become more than 64 KB in an HTTP request, and why does that matter for keepalive saves?
 - Which fields can a student register or submit, and which fields are server-owned?

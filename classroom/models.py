@@ -83,13 +83,11 @@ class Exam(models.Model):
         return self.title
 
 
-class Question(models.Model):
+class QuestionContent(models.Model):
     class Kind(models.TextChoices):
         CHOICE = "choice", "Multiple choice"
         TEXT = "text", "Written response"
 
-    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="questions")
-    position = models.PositiveIntegerField(default=0)
     kind = models.CharField(max_length=8, choices=Kind.choices, default=Kind.CHOICE)
     prompt = models.TextField(max_length=3000)
     points = models.PositiveIntegerField(
@@ -100,7 +98,41 @@ class Question(models.Model):
     explanation = models.TextField(blank=True, max_length=2000)
 
     class Meta:
+        abstract = True
+
+    def content_values(self):
+        return {
+            "kind": self.kind,
+            "prompt": self.prompt,
+            "points": self.points,
+            "options": list(self.options),
+            "correct_option": self.correct_option,
+            "explanation": self.explanation,
+        }
+
+
+class Question(QuestionContent):
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="questions")
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
         ordering = ["position", "pk"]
+
+
+class BankQuestion(QuestionContent):
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="question_bank"
+    )
+    title = models.CharField(max_length=160)
+    topic = models.CharField(max_length=80, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-pk"]
+
+    def __str__(self):
+        return self.title
 
 
 class Attempt(models.Model):

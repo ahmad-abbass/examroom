@@ -2,7 +2,6 @@ import csv
 import hashlib
 import json
 from datetime import timedelta
-from functools import wraps
 from urllib.parse import urlencode
 
 from django import forms
@@ -23,6 +22,7 @@ from django.views.decorators.http import require_POST, require_safe
 from .forms import CourseForm, ExamForm, QuestionForm, RegisterForm
 from .gradebooks import SORTS, STATUSES, filter_rows, gradebook_rows, sort_rows
 from .models import Attempt, Course, Enrollment, Exam, LoginThrottle, Profile, Question
+from .permissions import student_only, teacher_only
 from .services import (
     RevisionConflict,
     available,
@@ -35,24 +35,6 @@ from .services import (
     start_attempt,
     update_invitation,
 )
-
-
-def role_required(role):
-    def decorator(view):
-        @login_required
-        @wraps(view)
-        def wrapped(request, *args, **kwargs):
-            if request.user.profile.role != role:
-                raise PermissionDenied
-            return view(request, *args, **kwargs)
-
-        return wrapped
-
-    return decorator
-
-
-teacher_only = role_required(Profile.Role.TEACHER)
-student_only = role_required(Profile.Role.STUDENT)
 
 
 class SignIn(LoginView):

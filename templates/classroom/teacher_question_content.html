@@ -1,0 +1,18 @@
+<h3 class="preserve">{{ question.prompt }}</h3>
+{% if question.kind == 'choice' %}
+  <div class="preview-options">
+    {% for option in question.options %}
+      <div class="preview-option {% if forloop.counter0 == question.correct_option %}correct{% endif %}">
+        <span>{{ forloop.counter }}</span>{{ option }}{% if forloop.counter0 == question.correct_option %}
+          <strong>✓ Correct</strong>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="written-placeholder">Students will write their response here. You'll review it after submission.</div>
+{% endif %}
+{% if question.explanation %}
+  <p class="help">
+    <strong>After-results explanation:</strong> {{ question.explanation }}</p>
+{% endif %}

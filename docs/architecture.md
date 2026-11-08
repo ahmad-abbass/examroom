@@ -23,6 +23,7 @@ Django sessions and CSRF middleware cover state-changing browser requests. Every
 | Enrollment     | Unique pair of course and student                                                        |
 | Exam           | Belongs to a course; stores publication, duration, availability and result-release state |
 | Question       | Belongs to an exam; choice options/key or a written prompt, points and explanation       |
+| BankQuestion   | Teacher-owned reusable content; title/topic and an answer key private to that teacher    |
 | Attempt        | Unique exam/student pair; stored deadline, answer/grading revisions and submission state |
 | Answer         | Unique attempt/question pair; response, review flag, awarded points and teacher feedback |
 | LoginThrottle  | Shared-database counter for failed sign-ins by username/address hash                     |
@@ -32,6 +33,7 @@ Django sessions and CSRF middleware cover state-changing browser requests. Every
 | Operation                                        | Enforcement                                                                      |
 | ------------------------------------------------ | -------------------------------------------------------------------------------- |
 | Teacher edits an exam/question or exports grades | Role guard plus `course__teacher=request.user` object lookup                     |
+| Teacher reads or changes a bank question         | Role guard plus `teacher=request.user`; adding also checks the target exam owner |
 | Student sees an exam introduction                | Published exam plus enrollment lookup                                            |
 | Student starts an exam                           | Role guard, enrollment, publication and time window checked on server            |
 | Student reads/saves an attempt                   | Attempt lookup includes the signed-in student                                    |
@@ -71,6 +73,10 @@ An exam's owner can preview draft or published questions with the same answer co
 
 Exam duplication copies question rows into a new draft and resets the schedule, publication and release state. It never copies attempts or answers. Draft question moves lock the parent exam, swap adjacent rows, and normalize positions. Invitation changes and student joins lock the course; pausing or rotating a code preserves existing enrollments.
 
+The question bank is private to its teacher, with title/topic/prompt search, type filters, and 12-question pages. A teacher can write a bank question or save a copy from an owned exam, including a published one. `Question` and `BankQuestion` inherit their content fields from the abstract `QuestionContent` model and share form validation. This creates no extra content table and does not change existing exam-question rows.
+
+Adding a bank question locks the target exam and bank entry, checks both owners, and appends a fresh question row. The target must be an unpublished draft with no attempts and fewer than 50 questions. Copies retain their own content, options, answer key, and points; editing or deleting a bank entry cannot change an exam's questions, student answers, or grading. All save/copy/delete routes are POST-only with CSRF protection. The bank's answer-key preview is only used on teacher pages, never in the student preview or attempt templates.
+
 The gradebook combines enrolled students with existing attempts so missing submissions and historical records remain visible. Search/status filters and name, score, or submission-date ordering are applied before pagination. Missing scores and submission dates sort last; ties use student name and ID. CSV exports use the same filters and order across every matching row, and summary statistics use the full class. Answers are prefetched so graded-state checks and score sorting do not add one query per student.
 
 ## Testing map
@@ -78,10 +84,11 @@ The gradebook combines enrolled students with existing attempts so missing submi
 - `classroom/tests/test_workflows.py`: database-backed security, lifecycle, scoring, validation, CSV, authentication and demo checks.
 - `classroom/tests/test_duplication.py`, `test_ordering.py`, `test_invitations.py`, and `test_gradebooks.py`: teacher workflows, data isolation, filtering/pagination/export, and bounded gradebook queries.
 - `classroom/tests/test_preview.py`: preview permissions, hidden keys, question order, escaping, and isolation from student answers and grades.
+- `classroom/tests/test_question_bank.py`: bank validation, ownership, CSRF, search/pagination, copy limits, and independent exam grading after bank edits/deletion.
 - `classroom/tests/test_review_flags.py`, `test_grading_revisions.py`, and `test_large_saves.py`: persisted marks, stale review protection, transactional grading, and large UTF-8 request bodies.
 - `scripts/browser_smoke.cjs`: a complete two-user browser journey against a temporary database, plus viewport and console checks.
 - `.github/workflows/ci.yml`: backend matrix and browser execution on GitHub Actions.
 
 ## Deliberate boundaries
 
-The system assigns an exam to all enrolled students in its class and allows one attempt. Questions support four-option single-answer choice or teacher-graded text. Attachments, question imports, randomization, retakes, per-student accommodations, email/reset flows and external identity providers would each require explicit product and data-model work.
+The system assigns an exam to all enrolled students in its class and allows one attempt. Questions support four-option single-answer choice or teacher-graded text. Attachments, external question imports, bank sharing, randomization, retakes, per-student accommodations, email/reset flows and external identity providers would each require explicit product and data-model work.
